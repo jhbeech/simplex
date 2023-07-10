@@ -7,7 +7,7 @@ Subject to
 $$
 \begin{aligned}
 Ax &= b, \text{ ie} \\
-A_B x_B + A_N x_N &= b, x \geq 0 
+A_B x_B + A_N x_N &= b, x >= 0 
 \end{aligned}
 $$
 
