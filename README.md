@@ -5,9 +5,11 @@ $$c^T x = c_B^T x_B + c_N^T x_N$$
 
 
 Subject to
+
+
 $$
 \begin{aligned}
-Ax &= b, \text{ ie} \\
+Ax &= b \text{, ie} \\
 A_B x_B + A_N x_N &= b, x >= 0 
 \end{aligned}
 $$
