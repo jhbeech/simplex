@@ -1,7 +1,8 @@
 # Simplex Algorithm
 
 Maximize
-$c^T x = c_B^T x_B + c_N^T x_N$
+$$c^T x = c_B^T x_B + c_N^T x_N$$
+
 
 Subject to
 $$
