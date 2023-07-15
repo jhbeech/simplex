@@ -83,7 +83,12 @@ class LpProblem:
 
 
 def branch_and_bound(
-    A, b, c, gap: float, gomory_max_cuts: Optional[int] = None
+    A,
+    b,
+    c,
+    gap: float,
+    max_nodes_to_search: int,
+    gomory_max_cuts: Optional[int] = None,
 ):
     """branch and bound - assumes all variables are binary lol"""
 
@@ -96,20 +101,19 @@ def branch_and_bound(
     best_int_node = queue
     while queue:
         branch_node = queue.leftpop()
-        for new_node in branch_var.branch():
+        for new_node in branch_node.branch():
             queue.remove(new_node)
             ## we are searching this node now
             ## if it is worth searching we will branch into it and add its children otherwise we dont want it
 
             ## add constraint forcing branch_var = branch_val
-            A_branch, b_branch = get_branch_constraints(
-                A, b, branch_constraints
-            )
+            A_branch, b_branch = get_branch_constraints(A, b, branch_node)
             prob = LpProblem(A_branch, b_branch, c)
             new_relaxation = prob.primal_simplex()
             ## probably in fact faster to use current basis and add constraint and do dual simplex??
             new_integral = prob.get_rounded_objective()
 
+            nodes_searched += 1
             if new_relaxation < lower_bound:
                 print("prune :)")
                 ## by not adding new_node to queue, this branch is gone (i think)
@@ -123,7 +127,9 @@ def branch_and_bound(
                 lower_bound = new_integral
                 best_int_node = new_node
 
-            if upper_bound - lower_bound < gap:
+            if (upper_bound - lower_bound < gap) or (
+                nodes_searched > max_nodes_to_search
+            ):
                 print("bounds close enough, go with best integral sol")
                 break
 
