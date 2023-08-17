@@ -302,7 +302,6 @@ class LpProblem:
                 non_basis_vars.append(leaving_var_dual)
             else:
                 print("problem is now primal feasible :)")
-                print(f"{reduced_costs=}")
                 break
         self.basis = {
             b: v for b, v in zip(basis_vars, get_basis_values(A_b, b))
