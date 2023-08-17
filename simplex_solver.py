@@ -131,27 +131,27 @@ class LpProblem:
         )
         return non_slack_basis[0]
 
-    def get_dual_problem(self) -> LpProblem:
-        A = self.A
-        b = self.b
-        c = self.c
-        basis_vars = self.get_basis_vars()
-        non_slack_vars = [i for i in range(A.shape[1] - A.shape[0])]
-        ## transpose A to get dual A. Add in slack variables
-        ## slack variable per dual constraint. dual constraint per (non slack) variable in primal problem
-        A_dual = np.append(
-            A[:, non_slack_vars].T,
-            np.identity(len(non_slack_vars)),
-            axis=1,
-        )
-        b_dual = c[non_slack_vars]
-        c_dual = -np.append(b, np.zeros(len(non_slack_vars), dtype=np.float64))
+    # def get_dual_problem(self) -> LpProblem:
+    #     A = self.A
+    #     b = self.b
+    #     c = self.c
+    #     basis_vars = self.get_basis_vars()
+    #     non_slack_vars = [i for i in range(A.shape[1] - A.shape[0])]
+    #     ## transpose A to get dual A. Add in slack variables
+    #     ## slack variable per dual constraint. dual constraint per (non slack) variable in primal problem
+    #     A_dual = np.append(
+    #         A[:, non_slack_vars].T,
+    #         np.identity(len(non_slack_vars)),
+    #         axis=1,
+    #     )
+    #     b_dual = c[non_slack_vars]
+    #     c_dual = -np.append(b, np.zeros(len(non_slack_vars), dtype=np.float64))
 
-        ## exclude last slack variable, it should actully part of the basis, because it has non zero value (assuming the new constraint is violated)
+    #     ## exclude last slack variable, it should actully part of the basis, because it has non zero value (assuming the new constraint is violated)
 
-        non_slack_var_vals = c[basis_vars] @ np.linalg.inv(A[:, basis_vars])
-        # slack_var_vals = c -
-        # return LpProblem(A_dual, b_dual, c_dual, basis)
+    #     non_slack_var_vals = c[basis_vars] @ np.linalg.inv(A[:, basis_vars])
+    # slack_var_vals = c -
+    # return LpProblem(A_dual, b_dual, c_dual, basis)
 
     def get_basis_vars(self) -> list[int]:
         return list(self.basis.keys())
@@ -240,16 +240,86 @@ class LpProblem:
         return self.obj
 
     def dual_simplex(self, max_iterations):
-        print("dualize")
-        dual_problem = self.get_dual_problem()
+        """uses the dual simplex method to solve the LP with an added constraint making it primal infeasible (but dual feasible).
+        This is equivalent to solving min b.y subject to A.T @ y >= c"""
+        A = self.A
+        b = self.b
+        c = self.c
+        basis_vars: list[int] = self.get_basis_vars() + [self.A.shape[1] - 1]
+        non_basis_vars = get_non_basic(basis_vars, A.shape[1])
+        # print(f"{basis_vars=}")
+        # print(f"{non_basis_vars=}")
+
+        # print()
+        # print(f"{self.basis=}")
+        # print(f"{A=}")
+        # print(f"{b=}")
+        # print(f"{c=}")
+        reduced_costs = get_reduced_costs(
+            A[:, basis_vars],
+            A[:, non_basis_vars],
+            c[basis_vars],
+            c[non_basis_vars],
+        )
+
+        if reduced_costs.min() < 0:
+            print("Dual Infeasible.... try primal simplex")
+            self.obj = None
+            self.basis = None
+            return -999
+
+        for it in range(max_iterations):
+            A_b = A[:, basis_vars]
+            A_n = A[:, non_basis_vars]
+            c_b = c[basis_vars]
+            c_n = c[non_basis_vars]
+            reduced_costs = get_reduced_costs(A_b, A_n, c_b, c_n)
+            basis_vals = np.linalg.inv(A_b) @ b
+            leaving_var_loc = np.argmin(basis_vals)
+            leaving_var_dual = basis_vars[leaving_var_loc]
+            tableau = np.linalg.inv(A_b)[leaving_var_loc, :] @ A_n
+            if tableau.min() > 0:
+                print("Uh oh! this problem is dual unbounded")
+                self.basis = None
+                self.obj = None
+                return -999
+
+            if basis_vals.min() < 0:
+                leaving_var_dual = basis_vars[np.argmin(basis_vals)]
+                entering_var_dual = non_basis_vars[
+                    np.argmin(
+                        np.divide(
+                            reduced_costs,
+                            -tableau,
+                            out=np.array([999.0] * len(reduced_costs)),
+                            where=tableau < 0,
+                        )
+                    )
+                ]
+                basis_vars.remove(leaving_var_dual)
+                basis_vars.append(entering_var_dual)
+                non_basis_vars.remove(entering_var_dual)
+                non_basis_vars.append(leaving_var_dual)
+            else:
+                print("problem is now primal feasible :)")
+                break
+        self.basis = {
+            b: v for b, v in zip(basis_vars, get_basis_values(A_b, b))
+        }
+        # print(f"{self.basis=}")
+        self.obj = get_objective_value(c_b, A_b, b)
+        return self.obj
+
+        # print("dualize")
+        # dual_problem = self.get_dual_problem()
         ## move into the basis step into get dual problem
         # dual_problem.basis = {i: None for i in self.get_slack_vars()}
-        print("solve")
-        dual_problem.primal_simplex(max_iterations)
+        # print("solve")
+        # dual_problem.primal_simplex(max_iterations)
 
-        print("dualize again (back to original problem")
-        self.basis = {i: None for i in dual_problem.get_slack_vars()}
-        self.primal_simplex(1)  ## just to set all attrs
+        # print("dualize again (back to original problem")
+        # self.basis = {i: None for i in dual_problem.get_slack_vars()}
+        # self.primal_simplex(1)  ## just to set all attrs
 
     """
     x0 = 1 - y1 - y3
@@ -412,7 +482,7 @@ def get_leaving_var_primal(
     tableau = np.linalg.inv(A_b) @ A[:, entering_var]
 
     if tableau.max() < 0:
-        print("Uh oh! this program is unbounded")
+        print("\nUh oh! this program is unbounded")
         return None
 
     return basis[
@@ -452,28 +522,38 @@ def main():
 
     print("\nadd constraint")
     ## here we are adding a branch constraint, and then using the
+
+    print(prob.basis)
     branch_node = Node(1, 2.5, A, b, c, prob.basis)
-    branch_problem = branch_node.get_branch_problem(less_than=False)
+    branch_problem = branch_node.get_branch_problem(less_than=True)
+
     branch_problem.print_problem()
+
+    branch_problem.dual_simplex(20)
+    print(branch_problem.obj)
+    print(branch_problem.basis)
+
+    # branch_problem.primal_simplex(20)
+    # print(branch_problem.basis)
     # branch_problem.dual_simplex(1000)
 
     ## below works. Above is trying to replicate this....
     ## dual simplex method to solve with the new constraint added
     ## from the parent's basis (which is dual feasible but primal infeasible)
-    print("-----DUAL---")
-    dual_problem = branch_problem.get_dual_problem()
-    dual_problem.print_problem()
-    dual_problem.primal_simplex(100)
+    # print("-----DUAL---")
+    # dual_problem = branch_problem.get_dual_problem()
+    # dual_problem.print_problem()
+    # dual_problem.primal_simplex(100)
 
-    new_dual_basis_vars = dual_problem.get_basis_vars()
-    new_dual_slack_vars = get_non_basic(
-        new_dual_basis_vars, dual_problem.A.shape[1]
-    )
-    new_primal_basis = {i: None for i in new_dual_slack_vars}
-    print("--- NEW PRIMAL ---")
-    branch_problem.basis = new_primal_basis
-    branch_problem.primal_simplex(1000)
-    print(f"integral solution {branch_problem.get_rounded_objective()}")
+    # new_dual_basis_vars = dual_problem.get_basis_vars()
+    # new_dual_slack_vars = get_non_basic(
+    #     new_dual_basis_vars, dual_problem.A.shape[1]
+    # )
+    # new_primal_basis = {i: None for i in new_dual_slack_vars}
+    # print("--- NEW PRIMAL ---")
+    # branch_problem.basis = new_primal_basis
+    # branch_problem.primal_simplex(1000)
+    # print(f"integral solution {branch_problem.get_rounded_objective()}")
 
     return None
 
