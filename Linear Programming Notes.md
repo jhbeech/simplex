@@ -219,6 +219,12 @@ If we have an optimal basis and then we add a new variable to our LP, it is like
 
 If we add a new constraint to an LP, it is likely that the current BFS will violate this new constraint. However, adding a constraint to the primal LP is equivalent to adding a variable to the dual LP. So the corresponding dual's optimal solution will still be feasible (though probably not optimal). So we can dualize our LP and continue with the simplex method from the current dual solution until we reach dual optimality. Then we dualize back to our primal and we have found a primal feasible and optimal solution the LP with the new constraint. 
 
+```
+L = min(
+    A[:,basis].inv() @ b
+)
+```
+
 We can actually do this without explicitly creating the dual problem, but rather just analysing the primal tableau. 
 
 take our tableau to be
@@ -271,8 +277,8 @@ $$
 To see this rule in general, we can use the same kind of argument we did for the primal ratio test. 
 $$
 \begin{aligned}
-x_L &= - \alpha + \beta_1 x_1 + \beta_2 x_2 - ... \text{(only interested in positive coefficients)} \\
-z &= z_0 - rc_1 x_1 -rc_2 x_2 - ...(\text{all -ve})
+x_L &= - \alpha + \beta_1 x_1 + \beta_2 x_2 - ... \text{(only interested in positive coefficients (ie when tableau is negative))} \\
+z &= z_0 - rc_1 x_1 -rc_2 x_2 - ...(\text{all -ve since sol is  dual feasible})
 \end{aligned}
 $$
 Let $x_1$ be the entering variable.
@@ -305,7 +311,7 @@ $$
 \begin{aligned}
 (x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L  \\
 z &= z_0 - (c_B A_B^{-1} A_N - c_N) x_N \\
-E &= \min_{i|(A_B^{-1} A_N )_{Li}<0}{\frac{ (c_B A_B^{-1} A_N - c_N)_i}{(A_B^{-1} A_N)_{Li}}}
+E &= \min_{i|(A_B^{-1} A_N )_{Li}<0}{\frac{ (c_B A_B^{-1} A_N - c_N)_i}{-(A_B^{-1} A_N)_{Li}}}
 \end{aligned}
 $$
 
@@ -313,7 +319,7 @@ $$
 E = min(
     element_wise_divide(
         (c_b @ A_b.inv() @ A_n - c_n),
-        A_b.inv[L,:] @ A_n,
+        -A_b.inv[L,:] @ A_n,
         return_null_if=A_b.inv[L,:] @ A_n >= 0
     )
 )
