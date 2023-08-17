@@ -9,7 +9,6 @@ For some basis, B, we have:
 $$
 \max{c_B^T x_B + c_N^T x_N}, \\
 A_B x_B + A_N x_N = b, x \geq 0 
-
 $$
 
 Rearranging:
