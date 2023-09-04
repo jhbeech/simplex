@@ -176,6 +176,7 @@ So to find the minimal lower bound for the maximization problem ($\max{x_1+x_10}
 Minimize $17.5y_1 + 3.5y_2 = b \cdot y$
 
 Subject to:
+
 $$
 \begin{aligned}
     y_1 + y_2 &\geq 1 \\
@@ -219,6 +220,7 @@ $$
 $$
 
 We then have:
+
 $$
 \boxed{
     A \cdot x_{opt} = A^T \cdot y_{opt}    
@@ -243,6 +245,7 @@ We can actually do this without explicitly creating the dual problem, but rather
 take our tableau to be
 
 given by
+
 $$
 \begin{aligned}
 x_B &= A_B^{-1} b - A_B^{-1}A_N x_N\\
@@ -253,7 +256,6 @@ x_B &= A_B^{-1} b - A_B^{-1}A_N x_N\\
 -3 &+2x_1 &+4x_2 &-3x_3\\
 -4 &+2x_1 &-3x_2 &+1x_3\\
 \end{array} \\
-
 z& = z - (1,3,2) \cdot x_N
 \end{aligned}
 $$
@@ -268,7 +270,8 @@ So we have already decided to focus on row 3 ($x_5$ leaving) and we want to sele
 
 If we let $x_1$ or $x_6$ be the entering variable, when we rearrange row three, the basis value will be positive. Which do we choose though? We need to select the entering variable so that we retain our dual feasibility / primal optimality. 
 
-Our two options are :
+Our two options are:
+
 $$
 \begin{aligned}
 x_6 &= 4 - 2x_1 + 3x_3 + x_5 \text{ OR} \\
@@ -277,11 +280,13 @@ x_1 &= 2 +3/2 * x_3 + 1/2 * x_5 - 1/2 * x_6 \\
 $$
 
 We have
+
 $$
 z = 2 - x_1 -3x_3 -2x_6
 $$
 
 If we plug in the expression for $x_6$ (first option) into z, we see that we lose primal optimality as the coeffecient of $x_1$ would become positive.This is because 
+
 $$
 1 / 2 < 2 /1 \\
 \text{red. costs}[1] / (-A_B^{-1}A_N [leaving:1]) < \text{red. costs}[6] / (-A_B^{-1}A_N [leaving:6])
@@ -309,20 +314,25 @@ $$
 
 Since all symbols are positive, looking at the coefficient of $x_2$ in our expression for z (and remembering primal optimal only if all coeffs in expr for z are negative) we can see that primal optimality / dual feasibility is retained only if
 
-$$ rc_1 / \beta_1 < rc_2 \beta_2 $$
+$$
+rc_1 / \beta_1 < rc_2 \beta_2
+$$
 
 So, to find the leaving variable, $x_L$, we select the basis variable with the most negative value. To find the entering variable, we take
 
 $$
 \min_{i|\beta_i > 0} {rc_i / \beta_i}
 $$
+
 Where 
+
 $$ x_L = \alpha - \sum_N \beta_N x_N \\
 z = z_0 - \sum_N rc_N x_N
 $$
 
 
 In our matrix notation we have
+
 $$
 \begin{aligned}
 (x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L  \\
