@@ -114,6 +114,7 @@ Back to matrix notation:
 $$
 \min_{i|A_B^{-1}A_E > 0}{(A_B^{-1}b)_i/(A_B^{-1}A_E)_i}
 $$
+
 Where we are doing element-wise divide over the two vectors, indexed by i (no sum).
 
 ```
@@ -137,7 +138,9 @@ L = idxmin(
 If we are maximizing $x_1 + 7 x_2$ subject to $x_1 + 7x_2 \le 15$ then we clearly have an upper bound for our objective (15). If we have can find a linear combination of constraints so that the coefficients of $x_i$ are larger than the coefficients in the objective, then the linear combination of the right handsides/constants of those constraints is an upper bound for the objective
 
 ## Introduction by Example
-Maximize $$x_1 + 10 x_2$$ subject to
+Maximize $x_1 + 10 x_2$ 
+
+subject to
 
 $$
 \begin{aligned}
@@ -193,15 +196,13 @@ It turns out theat when we solve the two programs, the two objectives coincide. 
 For any linear program of the form:
 
 $$
-
-
 \boxed{
     \begin{array}{cl}
         &\text{Max } c \cdot x \\
         &A x \leq b, x \geq 0 
     \end{array}
   }
- $$
+$$
 
 We can construct its dual program:
 
@@ -293,6 +294,7 @@ x_L &= - \alpha + \beta_1 x_1 + \beta_2 x_2 - ... \text{(only interested in posi
 z &= z_0 - rc_1 x_1 -rc_2 x_2 - ...(\text{all -ve since sol is  dual feasible})
 \end{aligned}
 $$
+
 Let $x_1$ be the entering variable.
 
 $$
@@ -304,7 +306,9 @@ z &= z_0 - rc_1(\alpha/\beta_1 + x_L/\beta_1 - \beta_2/\beta_1 * x_2 + ...) - rc
 &= z_0 - \alpha rc_1/\beta_1 - (rc_1/\beta_1)x_L  + \beta_2(rc_1/\beta_1 - rc_2/\beta_2) x_2 \\
 \end{aligned}
 $$
+
 Since all symbols are positive, looking at the coefficient of $x_2$ in our expression for z (and remembering primal optimal only if all coeffs in expr for z are negative) we can see that primal optimality / dual feasibility is retained only if
+
 $$ rc_1 / \beta_1 < rc_2 \beta_2 $$
 
 So, to find the leaving variable, $x_L$, we select the basis variable with the most negative value. To find the entering variable, we take
