@@ -234,14 +234,14 @@ If we have an optimal basis and then we add a new variable to our LP, it is like
 
 If we add a new constraint to an LP, it is likely that the current BFS will violate this new constraint. However, adding a constraint to the primal LP is equivalent to adding a variable to the dual LP. So the corresponding dual's optimal solution will still be feasible (though probably not optimal). So we can dualize our LP and continue with the simplex method from the current dual solution until we reach dual optimality. Then we dualize back to our primal and we have found a primal feasible and optimal solution the LP with the new constraint. 
 
+
+We can actually do this without explicitly creating the dual problem, but rather just analysing the primal tableau. Take the most negative basis variable to be the leaving variable:
 ```
 L = min(
     A[:,basis].inv() @ b
 )
 ```
-
-We can actually do this without explicitly creating the dual problem, but rather just analysing the primal tableau. 
-
+<!-- 
 take our tableau to be
 
 given by
@@ -292,7 +292,10 @@ $$
 \text{red. costs}[1] / (-A_B^{-1}A_N [leaving:1]) < \text{red. costs}[6] / (-A_B^{-1}A_N [leaving:6])
 $$
 
-To see this rule in general, we can use the same kind of argument we did for the primal ratio test. 
+To see this rule in general, we can use the same kind of argument we did for the primal ratio test.  -->
+
+Then we apply a ratio test similar to that in primal simplex. Let
+
 $$
 \begin{aligned}
 x_L &= - \alpha + \beta_1 x_1 + \beta_2 x_2 - ... \text{(only interested in positive coefficients (ie when tableau is negative))} \\
