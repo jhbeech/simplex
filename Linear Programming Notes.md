@@ -44,8 +44,8 @@ x_1 &= \alpha_1 - \beta_1 x_E + ... \\
 x_2 &= \alpha_2 - \beta_2 x_E + ... \\
 \alpha_1 / \beta_1  &\lt \alpha_2 / \beta_2, (\alpha_i \gt 0, \beta_i > 0) \\
 \end{aligned}
-
 $$
+
 Then $\Rightarrow$
 $$
 \begin{aligned}
@@ -77,6 +77,7 @@ subject to $A x \leq b$, $b\geq\vec{0}$, then we always have an easy initial fea
 
 ### Entering Variable - Reduced Costs
 Since our expression for $z$ after choosing our initial basis is:
+
 $$
 z = c_B^T A_B^{-1}b -(c_B^T A_B^{-1}A_N − c_N^T )  \cdot c_N
 $$
@@ -330,18 +331,60 @@ E = min(
 
 ## Comparison with Dualizing and then doing normal simplex method
 To understand this better, we can explicitly look at the dual problem at the same time and see how this matches up with the usual ratio test in the usual simplex algorithm.....
-
-<!-- Let 
-$$
-rc_1/\beta_1 < rc_2/\beta_2
-$$ -->
+<BR>
+<BR>
+<BR>
 
 
+# Integer Programming
+## Branch and Bound
+If we have an integer problem where some of the variables are required to be integral, we can use branch and bound with the simplex method. Branch and bound is a more general method/framework than just linear programming, but we don't need to explain the method in general.
+
+- Solve the LP. If the solution is integral (as requred) then we are done. If not, then we take the relaxation value to be our upper bound and define a lower bound by finding an integral solution (eg round all variables down)
+- Then:
+    - we branch on one of the fractional variables, x1 with value v1 (for example pick the most fractional). We do this by creating two problems each being the original problem with a new constraint:
+        - $v \leq \lfloor f \rfloor$ 
+        - $v \geq \lceil f \rceil$
+        - for each subproblem we calculate the relaxation value and the integral value. 
+            - If the relaxation value is worse than our lower bound value, then we prune the branch - remove the node and all nodes below from the decision tree. 
+            - if the integral value is better than our previous lower bound, then we can increase our lower bound score
+    
+- Continue with the above process, traversing more of the tree until our lower bound and upper bound are equal.
+
+::: mermaid
+graph TD;
+    A{x1}-->|<= floor v1| B{x2}
+    A{x1}-->|>=ceil v1| C{x2}
+    B-->|<= floor v2|D{x3}
+    B-->|>= ceil v2|E{x3}
+    C-->|<= floor v2|F{x3}
+    C-->|>= ceil v2|G{x3}
+    D-->.
+    E-->..
+    F-->...
+    G-->....
+    ...
+:::
 
 
-<!-- ### Dual Simplex Example - explicitly dualizing
+## How do we do this in practise?
+We don't want to actually build a tree, what we do instead is use a queue data-structure. 
 
-Take a maximization LP (```max c.x st A.x <= b```) with:
+<!-- Take the most fractional variable and branch - create two problems: -->
+- Solve linear relaxation
+- Queue = most fractional var, $x_{i_1}$
+
+- Pop the first element of the queue, $x_{i_1}$ and 'branch' - create two problems:
+    - LpProb & $x_{i_1} \geq \lceil v_{i_1} \rceil$ and LpProb & $xi \leq \lfloor vi \rfloor$
+    - for each of these:
+        - if relaxation < lower bound, do nothing (ie prune)
+        - if integral sol > lower bound, replace lower bound
+        - if relaxation > lower bound, then take the most fractional value, $x_{i_2}$, and add it to the queue queue.append(A,b,c, $x_{i_2}$). (A,b,c is the subproblem so it contains the information of the  of of the parents of the node). (This means we don't prune this branch, we continue it by picking the most fractional var to be the next node).
+
+
+- Because we have developed the dual simplex method, that allows us to solve the branch problems quickly. On a branch node we have the basis, we then add the <= v1 or >= v1 constraint, making the problem primal infeasible. We use the dual simplex method to fix primal feasibility.
+
+<!-- Take a maximization LP (```max c.x st A.x <= b```) with:
 ```
 A = [4,1,0]
     [2,1,1]
