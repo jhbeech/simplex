@@ -6,6 +6,7 @@ $c^T x$
 Subject to $Ax = b, x \geq 0 $.
 
 For some basis, B, we have:
+
 $$
 \max{c_B^T x_B + c_N^T x_N}, \\
 A_B x_B + A_N x_N = b, x \geq 0 
@@ -48,6 +49,7 @@ x_2 &= \alpha_2 - \beta_2 x_E + ... \\
 $$
 
 Then $\Rightarrow$
+
 $$
 \begin{aligned}
 x_E &= \alpha_1 / \beta_1 -x_1 / \beta_1 + ...\\
@@ -93,7 +95,9 @@ We can read of our reduced costs (in the brackets). If all the reduced costs are
 $$
 x_B = A_B^{-1} b - A_B^{-1}A_N x_N\\
 $$
+
 Removing matrix notation [ie let $(A_B^{-1})_i = \alpha_i$] and focusing on the entering variable,
+
 $$
 x_i = \alpha_i - \beta_i x_E - ....... \text{, for }i \in B
 $$
@@ -106,6 +110,7 @@ $$
 $$
 
 Back to matrix notation:
+
 $$
 \min_{i|A_B^{-1}A_E > 0}{(A_B^{-1}b)_i/(A_B^{-1}A_E)_i}
 $$
@@ -133,6 +138,7 @@ If we are maximizing $x_1 + 7 x_2$ subject to $x_1 + 7x_2 \le 15$ then we clearl
 
 ## Introduction by Example
 Maximize $$x_1 + 10 x_2$$ subject to
+
 $$
 \begin{aligned}
 x_1 + 7 x_2 &\leq 17.5 \\
@@ -147,12 +153,16 @@ Multiplying our constraints by $y_1$ and $y_2$ (and requiring they are both nonn
 $$ (y_1 + y_2) x_1 + (7 y_1) x_2 \leq 17.5y_1 +3.5y_2   $$
 
 if we have the constraints:
-$$ \begin{aligned}
+
+$$ 
+\begin{aligned}
 (y_1 + y_2) &\geq 1 (x_1 \text{'s coeff in the obj)} \\
 7y_1 &\geq 10 (x_2 \text{'s coeff in the obj)}
-\end{aligned} $$
+\end{aligned} 
+$$
 
 Then by construction,
+
 $$ 
 x_1 + 10 x_2 \leq (y_1 + y_2) x_1 + (7 y_1) x_2 
 \leq 17.5y_1 +3.5y_2 
