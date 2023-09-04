@@ -337,9 +337,10 @@ $$
 \begin{aligned}
 (x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L  \\
 z &= z_0 - (c_B A_B^{-1} A_N - c_N) x_N \\
-E &= \min_{i\vert(A_B^{-1} A_N )_{Li}<0}{\frac{ (c_B A_B^{-1} A_N - c_N)_i}{-(A_B^{-1} A_N)_{Li}}}
+E &= \min_{i\vert(A_B^{-1} A_N )_{Li}<0}{\frac{ (c_B A_B^{-1} A_N - c_N)_i}{-(A_B^{-1} A_N)_{Li}}} \\
 \end{aligned}
 $$
+
 
 ```
 E = min(
@@ -400,7 +401,7 @@ We don't want to actually build a tree, what we do instead is use a queue data-s
 - Queue = most fractional var, $x_{i_1}$
 
 - Pop the first element of the queue, $x_{i_1}$ and 'branch' - create two problems:
-    - LpProb & $x_{i_1} \geq \lceil v_{i_1} \rceil$ and LpProb & $xi \leq \lfloor vi \rfloor$
+    - LpProb & $x_{i_1} \geq \lceil v_{i_1} \rceil$ and LpProb & $x_{i_1} \leq \lfloor v_{i_1} \rfloor$
     - for each of these:
         - if relaxation < lower bound, do nothing (ie prune)
         - if integral sol > lower bound, replace lower bound
