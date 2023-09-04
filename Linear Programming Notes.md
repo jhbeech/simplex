@@ -37,7 +37,8 @@ E = idxmin(
 ## Leaving Variable and Ratio Test
 We need to select the 'leaving variable' $x_L$ so that we maintain feasibility (keep variables greater than 0). 
 
-Consider only the rows of the tableau where the coefficient of the entering var is negative (there should always be at least 1? ) 
+Consider only the rows of the tableau where the coefficient of the entering var is negative (if not we have an infeasible program)
+
 $$
 \begin{aligned}
 x_1 &= \alpha_1 - \beta_1 x_E + ... \\
