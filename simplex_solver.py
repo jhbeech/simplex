@@ -128,7 +128,7 @@ class LpProblem:
         }
 
     def get_most_fractional_var(self) -> tuple[int, float]:
-        """selects basic variables are returns the one with the most fractional value (fractional part closest to 0.5)"""
+        """selects basic variable with the most fractional value (fractional part closest to 0.5)"""
         basis = self.basis
         if basis is None:
             return None
@@ -148,15 +148,8 @@ class LpProblem:
             else (None, None)
         )
 
-    def get_node(self) -> Node:
-        pass
-
     def get_basis_vars(self) -> list[int]:
         return list(self.basis.keys())
-
-    ## TODO rename this lol
-    def get_slack_vars(self) -> list[int]:
-        return get_non_basic(self.get_basis_vars(), self.A.shape[1])
 
     def primal_simplex(self, max_iterations: int):
         """solves maximize c.x subject to A.x == b, x >=0"""
@@ -406,6 +399,7 @@ def get_reduced_costs(
 ) -> npt.NDArray[np.float64]:
     """obj = obj_current_bfs - reduced_costs . x_non_basis
     (x_non_basis = 0). So negative reduced costs -> bring into basis"""
+
     return c_b @ np.linalg.inv(A_b) @ A_n - c_n
 
 
