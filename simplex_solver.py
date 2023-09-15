@@ -304,12 +304,12 @@ def branch_and_bound(
     print(f"best lower/integral bound {lower_bound}")
     if upper_bound == lower_bound:
         print(f"First sol is integral {lower_bound}")
-        return lower_bound, upper_bound, [], []
+        return lower_bound, upper_bound
 
     queue = prob.get_branch_problems()
     if queue is None:
         print("no fractional values")
-        return lower_bound, upper_bound, [], []
+        return lower_bound, upper_bound
     best_basis = None
     nodes_searched = 0
     branches_pruned = 0
