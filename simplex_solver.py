@@ -4,75 +4,9 @@ import numpy.typing as npt
 from typing import Optional
 import math
 
-
-class Node:
-    def __init__(
-        self,
-        var: int,
-        relaxation_val: float,
-        ## TODO rename relaxation_val
-        A: npt.NDArray[np.float64],
-        b: npt.NDArray[np.float64],
-        c: npt.NDArray[np.float64],
-        parents_basis: dict[int, Optional[float]],
-        depth: int,
-    ):
-        self.var = var
-        self.relaxation_val = relaxation_val
-        self.A = A
-        self.b = b
-        self.c = c
-        self.parents_basis = parents_basis.copy()
-        self.depth = depth
-
-    def get_branch_problem(self, less_than: bool = True) -> LpProblem:
-        """Adds 1 constraint to the linear program based off the branch.
-        The constraints associated with the parent's (of the node) values are already contained in A,b.
-        if var's value is relaxation_val then adds constraint x_i <= floor(relaxation_val) or - x_i <= -ceil(relaxation_val) depending on value of the arg less_than
-        So resulting LpProb is always in form A.x <= b
-        """
-        A = self.A.copy()
-        b = self.b.copy()
-        c = self.c.copy()
-        num_rows, num_columns = A.shape
-        relaxation_val = self.relaxation_val
-        var = self.var
-
-        new_column = np.zeros(num_rows)
-        new_row = np.zeros(num_columns + 1)
-
-        new_row[var] = 1 if less_than else -1
-        new_row[num_columns] = 1  ## new slack variable
-
-        new_b = np.append(
-            b,
-            (
-                math.floor(round(relaxation_val, 6))
-                if less_than
-                else -math.ceil(round(relaxation_val, 6))
-            ),
-        )
-
-        new_c = np.append(c, 0)
-        new_basis = self.parents_basis.copy()
-        new_basis.update(
-            {
-                num_columns: -relaxation_val
-                + math.floor(round(relaxation_val, 6))
-                if less_than
-                else relaxation_val - math.ceil(round(relaxation_val, 6))
-            }
-        )
-        return LpProblem(
-            np.append(
-                np.append(A, np.array([new_column]).T, axis=1),
-                np.array([new_row]),
-                axis=0,
-            ),
-            new_b,
-            new_c,
-            basis=new_basis,
-        )
+DUAL_FEASIBILITY_THRESHOLD = 0.000001
+PRIMAL_FEASIBILITY_THRESHOLD = 0.00001
+MINIMAL_ACCEPTABLE_PIVOT_COEFF = 0.00001
 
 
 class LpProblem:
@@ -151,7 +85,7 @@ class LpProblem:
     def get_basis_vars(self) -> list[int]:
         return list(self.basis.keys())
 
-    def primal_simplex(self, max_iterations: int):
+    def primal_simplex(self, max_iterations: int) -> float:
         """solves maximize c.x subject to A.x == b, x >=0"""
         A = self.A
         b = self.b
@@ -165,7 +99,7 @@ class LpProblem:
             )
             self.obj = None
             self.basis = None
-            return -999
+            return -999.0
 
         for it in range(max_iterations):
             A_b = A[:, basis_vars]
@@ -188,7 +122,7 @@ class LpProblem:
                 ## this means that the program is unbounded
                 self.obj = None
                 self.basis = None
-                return -999
+                return -999.0
 
             if entering_var is not None:
                 basis_vars.remove(leaving_var)
@@ -209,7 +143,9 @@ class LpProblem:
 
         return self.obj
 
-    def dual_simplex(self, max_iterations: int, blands_rule: bool = False):
+    def dual_simplex(
+        self, max_iterations: int, blands_rule: bool = False
+    ) -> float:
         """uses the dual simplex method to solve the LP with an added constraint making it primal infeasible (but dual feasible).
         This is equivalent to solving min b.y subject to A.T @ y >= c"""
         A = self.A
@@ -224,12 +160,12 @@ class LpProblem:
             c[non_basis_vars],
         )
 
-        if reduced_costs.min() < -0.000001:
+        if reduced_costs.min() < -DUAL_FEASIBILITY_THRESHOLD:
             print("Dual Infeasible.... try primal simplex")
             self.obj = None
             self.basis = None
             print(f"{reduced_costs=}")
-            return -999
+            return -999.0
 
         for it in range(max_iterations):
             A_b = A[:, basis_vars]
@@ -249,18 +185,18 @@ class LpProblem:
             # else:
             leaving_var_loc = np.argmin(basis_vals)
             tableau = np.linalg.inv(A_b)[leaving_var_loc, :] @ A_n
-            if basis_vals.min() > -0.00001:
+            if basis_vals.min() > -PRIMAL_FEASIBILITY_THRESHOLD:
                 ## problem now feasible
                 break
 
-            if tableau.min() > -0.00001:  # -0.0001:
+            if tableau.min() > -MINIMAL_ACCEPTABLE_PIVOT_COEFF:  # -0.0001:
                 print(
                     "Uh oh! this problem is dual unbounded (primal infeasible)"
                 )
                 ## does exception make more sense
                 self.basis = None
                 self.obj = None
-                return -999
+                return -999.0
             leaving_var_dual = basis_vars[leaving_var_loc]
             entering_var_dual = non_basis_vars[
                 np.argmin(
@@ -268,7 +204,7 @@ class LpProblem:
                         reduced_costs,
                         -tableau,
                         out=np.array([np.inf] * len(reduced_costs)),
-                        where=tableau < -0.00001,
+                        where=tableau < -MINIMAL_ACCEPTABLE_PIVOT_COEFF,
                     )
                 )
             ]
@@ -283,28 +219,81 @@ class LpProblem:
         self.obj = get_objective_value(c_b, A_b, b)
         return self.obj
 
-    def get_rounded_objective(self) -> float:
+    def get_rounded_objective(self) -> Optional[float]:
         """if simplex has already been solved, simply rounds all fractional values for x down and finds objective"""
         if self.basis:
             return sum(
-                self.c[var] * math.floor(round(val, 6))  ## TODO is this okay
+                self.c[var] * math.floor(round(val, 6))  ## TODO
                 for var, val in self.basis.items()
             )
         else:
             return None
 
+    def get_branch_problems(self) -> Optional[list[LpProblem]]:
+        """branches on most fractional var xf = vf and
+        returns two LpProblems - original LP + xf <= floor(vf) or
+        xf >= ceil(vf)"""
+        branch_probs: list[LpProblem] = []
+        A = self.A.copy()
+        b = self.b.copy()
+        c = self.c.copy()
+        num_rows, num_columns = A.shape
+        var, relaxation_val = self.get_most_fractional_var()
+        if var is None:
+            return None
+        for less_than in [True, False]:
+            new_column = np.zeros(num_rows)
+            new_row = np.zeros(num_columns + 1)
+
+            new_row[var] = 1 if less_than else -1
+            new_row[num_columns] = 1  ## new slack variable
+
+            new_b = np.append(
+                b,
+                (
+                    math.floor(round(relaxation_val, 6))
+                    if less_than
+                    else -math.ceil(round(relaxation_val, 6))
+                ),
+            )
+
+            new_c = np.append(c, 0)
+            new_basis = self.basis.copy()
+            new_basis.update(
+                {
+                    num_columns: -relaxation_val
+                    + math.floor(round(relaxation_val, 6))
+                    if less_than
+                    else relaxation_val - math.ceil(round(relaxation_val, 6))
+                }
+            )
+            branch_probs.append(
+                LpProblem(
+                    np.append(
+                        np.append(A, np.array([new_column]).T, axis=1),
+                        np.array([new_row]),
+                        axis=0,
+                    ),
+                    new_b,
+                    new_c,
+                    basis=new_basis,
+                )
+            )
+        return branch_probs
+
 
 def branch_and_bound(
-    A,
-    b,
-    c,
-    max_nodes_to_search: int,
+    A: npt.NDArray[np.float64],
+    b: npt.NDArray[np.float64],
+    c: npt.NDArray[np.float64],
+    # max_nodes_to_search: int,
     max_iterations_simplex: int,
     max_iterations_dual_simplex: int
     # gomory_max_cuts: Optional[int] = None,
 ):
     """branch and bound - assumes all variables are integers"""
-    ## TODO - have upper bound decrease and introduce gap parameter
+    ## TODO - have upper bound decrease if possible.
+    ## could terminate if gap is small enough
     ## TODO - add gomory cuts
     prob = LpProblem(A, b, c)
     prob.set_initial_basis()
@@ -317,62 +306,36 @@ def branch_and_bound(
         print(f"First sol is integral {lower_bound}")
         return lower_bound, upper_bound, [], []
 
-    ## get branch variable
-    node_var, node_val = prob.get_most_fractional_var()
-    if node_var is None:
+    queue = prob.get_branch_problems()
+    if queue is None:
         print("no fractional values")
         return lower_bound, upper_bound, [], []
-    queue = [Node(node_var, node_val, A, b, c, prob.basis, 0)]
     best_basis = None
     nodes_searched = 0
     branches_pruned = 0
     while queue:
-        branch_node = queue.pop(0)
-        for less_than in [True, False]:
-            print(
-                f"x_{branch_node.var} {'<' if less_than else '>'}{branch_node.relaxation_val}"
-            )
-            if nodes_searched > max_nodes_to_search:
-                print("reached max iterations")
-                queue = []
-                break
-            nodes_searched += 1
-            branch_prob = branch_node.get_branch_problem(less_than=less_than)
+        branch_prob = queue.pop(0)
+        branch_prob.dual_simplex(max_iterations_dual_simplex)
+        relaxation = branch_prob.obj
+        integral = branch_prob.get_rounded_objective()
+        print(f"relaxation {relaxation}. integral {integral}")
+        print(f"lower bound {lower_bound} upper bound {upper_bound}")
 
-            branch_prob.dual_simplex(max_iterations_dual_simplex)
-            relaxation = branch_prob.obj
-            integral = branch_prob.get_rounded_objective()
-            print(f"relaxation {relaxation}. integral {integral}")
-            print(f"lower bound {lower_bound} upper bound {upper_bound}")
-
-            if relaxation is None or relaxation < lower_bound:
-                print("pruning :D")
-                branches_pruned += 1
-                continue
+        if relaxation is None or relaxation < lower_bound:
+            print("pruning :D")
+            branches_pruned += 1
+            continue
+        else:
+            print("cant prune as relaxation better than lower bound")
+            child_probs = branch_prob.get_branch_problems()
+            if child_probs is None:
+                print("all vars are ints :), nothing to add to queue")
             else:
-                print("cant prune as relaxation better than lower bound")
-                node_var, node_val = branch_prob.get_most_fractional_var()
-                if node_var is None:
-                    print("all vars are ints :), nothing to add to queue")
-                else:
-                    ## TODO add way of instantiating Node from LpProblem
-                    ## or just better way of instantiating Node
-                    print(f"adding {node_var} <> {node_val} to Q")
-                    queue.append(
-                        Node(
-                            node_var,
-                            node_val,
-                            branch_prob.A,
-                            branch_prob.b,
-                            branch_prob.c,
-                            branch_prob.basis,
-                            branch_node.depth + 1,
-                        )
-                    )
-            if integral > lower_bound:
-                ## lower bound is best integral solution
-                lower_bound = integral
-                best_basis = branch_prob.basis
+                queue += child_probs
+        if integral > lower_bound:
+            ## lower bound is best integral solution
+            lower_bound = integral
+            best_basis = branch_prob.basis
 
     print(f"{nodes_searched=}")
     print(f"{branches_pruned=}")
@@ -386,7 +349,7 @@ def get_entering_var_primal(
 ) -> Optional[int]:
     return (
         non_basis[np.argmin(reduced_costs)]
-        if reduced_costs.min() < 0.0000001
+        if reduced_costs.min() < PRIMAL_FEASIBILITY_THRESHOLD
         else None
     )
 
@@ -399,7 +362,6 @@ def get_reduced_costs(
 ) -> npt.NDArray[np.float64]:
     """obj = obj_current_bfs - reduced_costs . x_non_basis
     (x_non_basis = 0). So negative reduced costs -> bring into basis"""
-
     return c_b @ np.linalg.inv(A_b) @ A_n - c_n
 
 
@@ -427,7 +389,7 @@ def get_leaving_var_primal(
                 np.linalg.inv(A_b) @ b,
                 tableau,
                 ## only search over positive elements of tableau
-                where=tableau > 0.00001,
+                where=tableau > MINIMAL_ACCEPTABLE_PIVOT_COEFF,
                 out=np.array([np.inf] * A_b.shape[0]),
             )
         )
@@ -466,9 +428,9 @@ def main():
     prob_pulp += c @ x
     for lhs, rhs in zip(A @ x, b):
         prob_pulp += lhs == rhs
-    status = prob_pulp.solve()
+    status = prob_pulp.solve(pulp.PULP_CBC_CMD(message=False))
     t1 = time.monotonic()
-    obj, basis = branch_and_bound(A, b, c, 1000000, 100000, 1000)
+    obj, basis = branch_and_bound(A, b, c, 100000, 1000)
     t2 = time.monotonic()
 
     print("\n\n")
