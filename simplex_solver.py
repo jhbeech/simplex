@@ -4,9 +4,11 @@ import numpy.typing as npt
 from typing import Optional
 import math
 
-DUAL_FEASIBILITY_THRESHOLD = 0.000001
-PRIMAL_FEASIBILITY_THRESHOLD = 0.00001
-MINIMAL_ACCEPTABLE_PIVOT_COEFF = 0.00001
+### FIX THESE
+DUAL_FEASIBILITY_THRESHOLD = 1e-7
+PRIMAL_FEASIBILITY_THRESHOLD = 1e-7  # -1e-48
+MINIMAL_ACCEPTABLE_PIVOT_COEFF = 1e-7
+np.random.seed(42)
 
 
 class LpProblem:
@@ -85,14 +87,19 @@ class LpProblem:
     def get_basis_vars(self) -> list[int]:
         return list(self.basis.keys())
 
-    def primal_simplex(self, max_iterations: int) -> float:
+    def primal_simplex(
+        self, max_iterations: int, blands_rule: bool = False
+    ) -> float:
         """solves maximize c.x subject to A.x == b, x >=0"""
         A = self.A
         b = self.b
         c = self.c
         basis_vars: list[int] = self.get_basis_vars()
         non_basis_vars = get_non_basic(basis_vars, A.shape[1])
-        if get_basis_values(A[:, basis_vars], b).min() < 0:
+        if (
+            get_basis_values(A[:, basis_vars], b).min()
+            < PRIMAL_FEASIBILITY_THRESHOLD
+        ):
             print("Infeasible.... try dualizing")
             print(
                 f"{basis_vars}, vals= {get_basis_values(A[:, basis_vars], b)}\n"
@@ -109,14 +116,20 @@ class LpProblem:
             print(
                 f"\riterations: {it}. Objective: {get_objective_value(c_b, A_b, b)}",  # . Basis: {basis_vars}. Vals {get_basis_values(A_b, b)}",  ## remove this for speed
             )
-
             reduced_costs = get_reduced_costs(A_b, A_n, c_b, c_n)
             entering_var = get_entering_var_primal(
-                reduced_costs, non_basis_vars
+                reduced_costs, non_basis_vars, blands_rule
             )
             leaving_var = get_leaving_var_primal(
                 basis_vars, A, A_b, b, entering_var
             )
+            ## dev
+            print(f"{basis_vars=}")
+            print(f"{non_basis_vars=}")
+            print(f"{reduced_costs=}")
+            print(f"{leaving_var=}")
+            print(f"{entering_var=}")
+            print()
 
             if leaving_var is None and entering_var is not None:
                 ## this means that the program is unbounded
@@ -189,7 +202,7 @@ class LpProblem:
                 ## problem now feasible
                 break
 
-            if tableau.min() > -MINIMAL_ACCEPTABLE_PIVOT_COEFF:  # -0.0001:
+            if tableau.min() > MINIMAL_ACCEPTABLE_PIVOT_COEFF:  # -0.0001:
                 print(
                     "Uh oh! this problem is dual unbounded (primal infeasible)"
                 )
@@ -204,7 +217,7 @@ class LpProblem:
                         reduced_costs,
                         -tableau,
                         out=np.array([np.inf] * len(reduced_costs)),
-                        where=tableau < -MINIMAL_ACCEPTABLE_PIVOT_COEFF,
+                        where=tableau <= MINIMAL_ACCEPTABLE_PIVOT_COEFF,
                     )
                 )
             ]
@@ -346,12 +359,26 @@ def branch_and_bound(
 def get_entering_var_primal(
     reduced_costs: npt.NDArray[np.float64],
     non_basis: list[int],
+    blands_rule: bool,
 ) -> Optional[int]:
-    return (
-        non_basis[np.argmin(reduced_costs)]
-        if reduced_costs.min() < PRIMAL_FEASIBILITY_THRESHOLD
-        else None
-    )
+    if blands_rule:
+        np.argwhere(reduced_costs < PRIMAL_FEASIBILITY_THRESHOLD)
+        return (
+            min(
+                non_basis[i]
+                for i in np.argwhere(
+                    reduced_costs < PRIMAL_FEASIBILITY_THRESHOLD
+                ).T[0]
+            )
+            if reduced_costs.min() < PRIMAL_FEASIBILITY_THRESHOLD
+            else None
+        )
+    else:
+        return (
+            non_basis[np.argmin(reduced_costs)]
+            if reduced_costs.min() < PRIMAL_FEASIBILITY_THRESHOLD
+            else None
+        )
 
 
 def get_reduced_costs(
@@ -379,7 +406,8 @@ def get_leaving_var_primal(
     if entering_var is None:
         return None
     tableau = np.linalg.inv(A_b) @ A[:, entering_var]
-    if tableau.max() < 0:
+    print(f"{tableau=}")
+    if tableau.max() < MINIMAL_ACCEPTABLE_PIVOT_COEFF:
         print("\nUh oh! this program is unbounded")
         return None
 
@@ -389,7 +417,7 @@ def get_leaving_var_primal(
                 np.linalg.inv(A_b) @ b,
                 tableau,
                 ## only search over positive elements of tableau
-                where=tableau > MINIMAL_ACCEPTABLE_PIVOT_COEFF,
+                where=tableau >= MINIMAL_ACCEPTABLE_PIVOT_COEFF,
                 out=np.array([np.inf] * A_b.shape[0]),
             )
         )
@@ -428,9 +456,9 @@ def main():
     prob_pulp += c @ x
     for lhs, rhs in zip(A @ x, b):
         prob_pulp += lhs == rhs
-    status = prob_pulp.solve(pulp.PULP_CBC_CMD(message=False))
+    status = prob_pulp.solve(pulp.PULP_CBC_CMD())
     t1 = time.monotonic()
-    obj, basis = branch_and_bound(A, b, c, 100000, 1000)
+    obj, basis = branch_and_bound(A, b, c, 1000000, 100000)
     t2 = time.monotonic()
 
     print("\n\n")
