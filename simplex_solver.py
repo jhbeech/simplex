@@ -4,12 +4,11 @@ import numpy.typing as npt
 from typing import Optional
 import math
 
-### FIX THESE
-MAX_REDUCED_COSTS = 0.0  # 0.0000001
-# DUAL_FEASIBILITY_THRESHOLD = 1e-7
-# PRIMAL_FEASIBILITY_THRESHOLD = 1e-7  # -1e-48
-# MINIMAL_ACCEPTABLE_PIVOT_COEFF = 1e-7
-np.random.seed(42)
+MAX_REDUCED_COSTS = 0.0
+MIN_REDUCED_COSTS_DUAL_FEASIBILITY = -0.000001
+MIN_BASIS_VALS_PRIMAL_FEASIBILITY = -0.00001
+TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX = -0.00001
+TABLEAU_MIN_PIVOT_COL_PRIMAL_SIMPLEX = 0.00001
 
 
 class LpProblem:
@@ -172,7 +171,7 @@ class LpProblem:
             c[non_basis_vars],
         )
 
-        if reduced_costs.min() < -0.000001:
+        if reduced_costs.min() < MIN_REDUCED_COSTS_DUAL_FEASIBILITY:
             print("Dual Infeasible.... try primal simplex")
             self.obj = None
             self.basis = None
@@ -198,11 +197,11 @@ class LpProblem:
             # else:
             leaving_var_loc = np.argmin(basis_vals)
             tableau = np.linalg.inv(A_b)[leaving_var_loc, :] @ A_n
-            if basis_vals.min() > -0.00001:
+            if basis_vals.min() > MIN_BASIS_VALS_PRIMAL_FEASIBILITY:
                 ## problem now feasible
                 break
 
-            if tableau.min() > -0.00001:  # -0.0001:
+            if tableau.min() >= TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX:  # -0.0001:
                 print(
                     "Uh oh! this problem is dual unbounded (primal infeasible)"
                 )
@@ -217,7 +216,7 @@ class LpProblem:
                         reduced_costs,
                         -tableau,
                         out=np.array([np.inf] * len(reduced_costs)),
-                        where=tableau < -0.00001,
+                        where=tableau < TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX,
                     )
                 )
             ]
@@ -304,12 +303,14 @@ def branch_and_bound(
     max_iterations_dual_simplex: int,
     # slacks_included: bool = True,
     # gomory_max_cuts: Optional[int] = None,
-) -> tuple[float, npt.NDarray]:
+    mip_gap_threshold: float = 0,
+) -> tuple[float, npt.NDArray[np.float64], list[tuple[int, float]], int, int]:
     """branch and bound - assumes all variables are integers"""
     ## TODO - have upper bound decrease if possible.
     ## could terminate if gap is small enough
     ## TODO - add gomory cuts
-    sols = []
+    integral_sols = []
+    relaxation_sols = []
     prob = LpProblem(A, b, c)
     prob.set_initial_basis()
     prob.primal_simplex(max_iterations_simplex)
@@ -318,8 +319,16 @@ def branch_and_bound(
     lower_bound = prob.get_rounded_objective()
     print(f"best lower/integral bound {lower_bound}")
     if upper_bound == lower_bound:
+        sol = np.floor(
+            np.array(
+                [
+                    round(best_basis.get(var, 0), 6)
+                    for var in range(prob.n_non_slack_vars)
+                ]
+            )
+        )
         print(f"First sol is integral {lower_bound}")
-        return lower_bound, upper_bound, 0, 0
+        return lower_bound, sol, [(lower_bound, lower_bound)], 0, 0
 
     queue = prob.get_branch_problems()
     if queue is None:
@@ -329,6 +338,7 @@ def branch_and_bound(
     nodes_searched = 0
     branches_pruned = 0
     while queue:
+        nodes_searched += 1
         branch_prob = queue.pop(0)
         branch_prob.dual_simplex(max_iterations_dual_simplex)
         relaxation = branch_prob.obj
@@ -345,14 +355,16 @@ def branch_and_bound(
             child_probs = branch_prob.get_branch_problems()
             if child_probs is None:
                 print("all vars are ints :), nothing to add to queue")
+            elif integral > relaxation - mip_gap_threshold:
+                print("within mip gap threshold, nothing to add to queue")
             else:
                 queue += child_probs
         if integral > lower_bound:
             ## lower bound is best integral solution
             lower_bound = integral
             best_basis = branch_prob.basis
-        sols.append(lower_bound)
-
+        integral_sols.append(lower_bound)
+        relaxation_sols.append(relaxation)
     print(f"{nodes_searched=}")
     print(f"{branches_pruned=}")
     print("final lower bound, upper bound", lower_bound, upper_bound)
@@ -364,7 +376,13 @@ def branch_and_bound(
             ]
         )
     )
-    return lower_bound, sol, sols, nodes_searched, branches_pruned
+    return (
+        lower_bound,
+        sol,
+        list(zip(relaxation_sols, integral_sols)),
+        nodes_searched,
+        branches_pruned,
+    )
 
 
 def get_entering_var_primal(
@@ -426,7 +444,7 @@ def get_leaving_var_primal(
                 np.linalg.inv(A_b) @ b,
                 tableau,
                 ## only search over positive elements of tableau
-                where=tableau >= 0.00001,
+                where=tableau >= TABLEAU_MIN_PIVOT_COL_PRIMAL_SIMPLEX,
                 out=np.array([np.inf] * A_b.shape[0]),
             )
         )
@@ -449,6 +467,7 @@ def main():
     import pulp
     import time
 
+    np.random.seed(42)
     n = 15
     m = 15
     max_val = 100
@@ -467,7 +486,9 @@ def main():
         prob_pulp += lhs == rhs
     status = prob_pulp.solve(pulp.PULP_CBC_CMD())
     t1 = time.monotonic()
-    obj, basis = branch_and_bound(A, b, c, 1000000, 100000)
+    obj, sol, trajectory, nodes_searched, branches_pruned = branch_and_bound(
+        A, b, c, 1000000, 100000
+    )
     t2 = time.monotonic()
 
     print("\n\n")

@@ -10,8 +10,7 @@ n,m,max_val,random_seed =
 10,5,10,420 works
 (20,20,10,41) works, slow (was singular matrix error needed to switch some 0s for -0.0001)
 (20,20,10,40) works now after setting reduced_costs.min() < -0.000001
-found issue where was using 999 instead of inf somewhere :/
-issue in primal where 
+found issue where was using 999 instead of inf somewhere D:
 """
 np.random.seed(42)
 
@@ -69,12 +68,13 @@ for it in range(50):
     t1 = time.monotonic()
     print(pulp.LpStatus[status], "----" * 5)
     print([xi.value() for xi in x])
-    obj, best_basis, sols, searched, pruned = simplex_solver.branch_and_bound(
+    obj, sol, sols, searched, pruned = simplex_solver.branch_and_bound(
         np.append(A, np.identity(A.shape[0]), axis=1),
         b,
         np.append(c, np.zeros(A.shape[0])),
         1000,
         10000000,
+        mip_gap_threshold=0.9,
     )
     t2 = time.monotonic()
     print(f"J time: {t2 - t1}. P time: {t1 - t0}")
@@ -84,7 +84,7 @@ for it in range(50):
 
     plt.plot(sols)
     plt.plot([prob_pulp.objective.value()] * len(sols))
-    # plt.show()
+    plt.show()
 
     with open(f"./test_logs/{n}_by_{m}_max_val_{max_val}.txt", "a") as f:
         f.write("\n" * 2)
@@ -103,6 +103,6 @@ for it in range(50):
             f.write(f"{prob_pulp.objective.value()}={obj}\n")
             f.write(f"searched {searched}. pruned {pruned}\n")
             f.write(
-                f"number of simplex iterations at optimum {sum(1 if i == obj else 0 for i in sols)} / {len(sols)}\n"
+                f"number of simplex iterations at optimum {sum(1 if i[1] == obj else 0 for i in sols)} / {len(sols)}\n"
             )
             f.write(f"obj traj: \n\t[{','.join(map(str,sols))}]\n")
