@@ -123,6 +123,7 @@ the reduced cost of variable j is by definition
 $$
 (\text{reduced cost})[j] = - \frac{\partial z}{\partial x_j}
 $$
+
 So it tells us what rate our objective will decrease by if we bring $x_j$ into the basis. 
 
 Thinking 
