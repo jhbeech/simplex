@@ -21,7 +21,7 @@ The solution space to $Ax \leq b$ is called a bounded *convex*$^*$ polytope
 we say a space S is convex if you can draw a line between any two points in the set, and every point on that line is in the set:
 
 $$
-\forall x,y \in S, \lambda \in [0,1]\\
+\forall x,y \in S, \lambda \in [0,1] \Rightarrow\\
 x + \lambda (y-x) \in S
 $$
 
