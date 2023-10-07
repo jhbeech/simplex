@@ -41,6 +41,7 @@ a feasible solution x such that there exists an m element set
 $$
 B \subset \{1, ..., n+m\}
 $$
+
 where
 $$
 A[:,B] \text{ is non singular}\\
