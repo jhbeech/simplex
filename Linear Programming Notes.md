@@ -1,10 +1,90 @@
-# The Simplex Algorithm
-Maximize
-$c^T x$
+# Linear Programming
+A linear program is a problem of the form
 
-Subject to $Ax = b, x \geq 0 $.
+$$
+\boxed {
+\begin{array}{cc}
+    \text{Maximize } c^T x \\
+    \text{Subject to } Ax \leq b, x \geq 0 
+\end{array}
+}
+$$
 
-For some basis, B, we have:
+Actually they often look different but we can always convert them to look like this. 
+
+To solve this problem we convert the inequality to an equality by adding slack variables. eg $x_1 \leq 1 \leftarrow x_1 + s_1 = 1$
+
+The solution space to $Ax \leq b$ is called a bounded *convex*$^*$ polytope
+<img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/3dpoly.svg" width=200>
+
+## Convex set
+we say a space S is convex if you can draw a line between any two points in the set, and every point on that line is in the set:
+
+$$
+\forall x,y \in S, \lambda \in [0,1]\\
+x + \lambda (y-x) \in S
+$$
+
+## Intersection of convex sets is convex
+if $x,y \in S_1, S_2$ where $S_1$ and $S_2$ are both convex. Then for any $x,y \in S_1 \cap S_2, \lambda \in [0,1] \Rightarrow x + \lambda (y-x) \in S_1 \cap S_2$. This is useful because a half-plane: $\{x\in R^n | v \cdot x \leq b\} $ is convex, hence the intersection of many half-planes (the solution space to a linear program) is a convex set.
+
+## Optimal solution to an LP is a vertex of the solution polytope.
+An optimal solution will always sit on one of the vertices (red dots above). This is intuitively makes sense as we know that if you are optimizing a linear function, there will be no local maxima, so the maxima occurs at a boundary, and then we can apply the same logic to any boundary - the optimal solution along that boundary will be at the boundary of the boundary. And so on. So the optima will occur at the "intersection of the maximum number of hyperplanes as possible. In 2d this is the intersection of two lines; in 3d this is the intersection of three planes. 
+
+All of the above discussion was thinking in inequality land - how does this all work when we have converted to our equality version of the problem? 
+
+Keeping with our inequalities for a moment, we conceptualise each constraint equation as a boundary/hyper-plane (solution is on the boundary when the inequality is tight) and we also have $x_1 \geq 0, x_2 \geq 0$ which similarly define boundaries. So we are at the intersection of D boundaries if D inequalities are tight. Now moving to our new formulation, this simply means D variables (including slacks and our original variables) are 0! So if we initially (before converting inequalities to equalities) have m constraints and n variables, then the solution will occur at the intersection of n of the m constraints. ie we will have n 0s in our optimal solution (when include the slack variables). This is called a **basic feasible solution**. 
+
+## Basic feasible solution
+A BFS is a vertex on a polytope. Equivalently, for a linear program $\max{c.x | A x = b, x \geq 0 }$, a BFS is 
+a feasible solution x such that there exists an m element set 
+$$
+B \subset \{1, ..., n+m\}
+$$
+where
+$$
+A[:,B] \text{ is non singular}\\
+j \notin B \Rightarrow x_j = 0 
+$$
+
+we call the variables $x_j, j \in B$ basic variables, and the rest nonbasic.
+
+## Alternative definition of vertext
+Unique maximum of linear function over polytope. 
+
+...
+
+## A linear function's local maximum over a convex set is a global maximum
+The simplex algorithm is a greedy algorithm that lets us move from one BFS / vertex to a better neighbouring BFS. This terminates when there are no better neighbouring BFSs. Although we are pretty confident (didn't prove it) that a solution occurs at a vertex, we are not sure that we can implement a greedy algorithm this way - eg imagine a set that has a kindof pointy snake a shape that snakes towards the optimum, away and then back towards the optimum. 
+
+(We will now see that this cannot happen, because the intersection of linear inequalities cannot be snakey - it can only be kindof like a pointy ball. To see this formally:)
+
+Let S be a concave set and let v be 'locally optimal' vertex. ie if you move in any direction from v, the objective does not get larger. Let s be another vertex that has a greater objective value.
+
+$$
+c \cdot s \gt c \cdot v  \\
+\therefore \lambda \in [0,1] \Rightarrow \\
+c \cdot (v + \lambda (s - v)) = \\
+= c \cdot v + \lambda(c \cdot s - c \cdot v) \gt c \cdot v
+$$
+
+Therefore, if we move at all toward s, the obj will increase - contradicting our assumption. The contradiction only exists if 
+$$ 
+\lambda v + (1-\lambda)s \in S
+$$
+
+This holds true in any convex set by definition. If we have a snakey set, then this statement doesn't hold and in fact we can have locally optimal vertices that are not globally optimal. So what have we just proved? If we have a local maxima on our *convex* set and linear function, then it is a global maxima. This then implies that if a vertex has a larger objective than its neighbouring vertices, then it is the global maximum. 
+
+(
+     We are missing something for that last sentence. We have proved that (local max $\Rightarrow$ global max) not (bigger than neighbouring vertices $\Rightarrow$ global max). And we have not shown that (bigger than neighbouring vertices $\Rightarrow$ local max). It definitely seems true though geometrically. If you are at a vertice, any direction you move is a linear combination of the direction vectors towards the neighbouring vertices - therefore, bigger than neighbour vertices $\Rightarrow$ local maxima. Not sure how to show mathematically. 
+)
+
+
+
+## The Simplex Algorithm
+From the above discussion, we have seen that an optimal solution to a linear program is on a vertex, and that if we keep moving to neighbouring vertices with larger objectives, we will eventually find the global max.
+
+Take some basis B, then we have:
 
 $$
 \max{c_B^T x_B + c_N^T x_N}, \\
@@ -33,6 +113,16 @@ E = idxmin(
     return_null_if=reduced_costs.isnull()
 )
 ```
+
+## Interpretation of reduced costs
+the reduced cost of variable j is by definition
+
+$$
+(\text{reduced cost})[j] = - \frac{\partial z}{\partial x_j}
+$$
+So it tells us what rate our objective will decrease by if we bring $x_j$ into the basis. 
+
+Thinking 
 
 ## Leaving Variable and Ratio Test
 We need to select the 'leaving variable' $x_L$ so that we maintain feasibility (keep variables greater than 0). 
@@ -134,7 +224,7 @@ L = idxmin(
 
 # Dual Linear Program
 ## First Inuition
-If we are maximizing $x_1 + 7 x_2$ subject to $x_1 + 7x_2 \le 15$ then we clearly have an upper bound for our objective (15). If we have can find a linear combination of constraints so that the coefficients of $x_i$ are larger than the coefficients in the objective, then the linear combination of the right handsides/constants of those constraints is an upper bound for the objective
+If we are maximizing $x_1 + 7 x_2$ subject to $x_1 + 7x_2 \le 15$ then we clearly have an upper bound for our objective (15). In general, if we have can find a linear combination of constraints so that the coefficients of $x_i$ are larger than the coefficients in the objective, then the linear combination of the right handsides/constants of those constraints is an upper bound for the objective
 
 ## Introduction by Example
 Maximize $x_1 + 10 x_2$ 
@@ -152,7 +242,7 @@ How do we find an upper bound for our obj?
 
 Multiplying our constraints by $y_1$ and $y_2$ (and requiring they are both nonnegative) and then adding them we get
 
-$$ (y_1 + y_2) x_1 + (7 y_1) x_2 \leq 17.5y_1 +3.5y_2   $$
+$$(y_1 + y_2) x_1 + (7 y_1) x_2 \leq 17.5y_1 +3.5y_2$$
 
 if we have the constraints:
 
@@ -190,7 +280,31 @@ Here we have a constructed a linear program and seen (and essentially proven) th
 
 From this example we can also see how each dual variable corresponds with a constraint.
 
-It turns out theat when we solve the two programs, the two objectives coincide. This is called the strong duality theorem.
+We can do this same construction in general:
+Take
+$$
+c^T x \\
+\text{subject to } Ax \leq b
+$$
+Pre multiplying the constraint by y (row), where $y_i \geq 0$:
+
+$$
+y A x \geq y b
+$$
+If we constrain y by:
+$$
+y A \geq c^T
+$$
+Then by construction:
+$$
+yb \geq [yAx] \geq c^T x
+$$
+
+So to find the least upper bound for $c^T x$ we minimize $yb$ subject to $yA \geq c^T$.
+
+
+
+It turns out that when we solve the two programs, the two objectives coincide. This is called the strong duality theorem.
 
 ## General Rules
 For any linear program of the form:
@@ -240,58 +354,6 @@ L = min(
     A[:,basis].inv() @ b
 )
 ```
-<!-- 
-take our tableau to be
-
-given by
-
-$$
-\begin{aligned}
-x_B &= A_B^{-1} b - A_B^{-1}A_N x_N\\
-\\
-&= 
-\begin{array}{ccc}
-+5 &+2x_1 &-1x_2 &+2x_3\\
--3 &+2x_1 &+4x_2 &-3x_3\\
--4 &+2x_1 &-3x_2 &+1x_3\\
-\end{array} \\
-z& = z - (1,3,2) \cdot x_N
-\end{aligned}
-$$
-
-We pick the exiting variable to be one of the variables with a negative value in the solution - take the most negative, $x_5$. This is in fact equivalent to taking the variable with the most negative dual reduced costs to enter the dual solution, but let's ignore that for the moment. 
-
-Now we need to pick an entering variable such that dual feasibility ( ie primal optimality) is maintained. 
-
-(In the primal construction, this is equivalent to selecting the leaving variable, so it makes sense that we will need the ratio test).
-
-So we have already decided to focus on row 3 ($x_5$ leaving) and we want to select an entering variable so that reduced costs remain positive and the constant in the row becomes positive. 
-
-If we let $x_1$ or $x_6$ be the entering variable, when we rearrange row three, the basis value will be positive. Which do we choose though? We need to select the entering variable so that we retain our dual feasibility / primal optimality. 
-
-Our two options are:
-
-$$
-\begin{aligned}
-x_6 &= 4 - 2x_1 + 3x_3 + x_5 \text{ OR} \\
-x_1 &= 2 +3/2 * x_3 + 1/2 * x_5 - 1/2 * x_6 \\
-\end{aligned}
-$$
-
-We have
-
-$$
-z = 2 - x_1 -3x_3 -2x_6
-$$
-
-If we plug in the expression for $x_6$ (first option) into z, we see that we lose primal optimality as the coeffecient of $x_1$ would become positive.This is because 
-
-$$
-1 / 2 < 2 /1 \\
-\text{red. costs}[1] / (-A_B^{-1}A_N [leaving:1]) < \text{red. costs}[6] / (-A_B^{-1}A_N [leaving:6])
-$$
-
-To see this rule in general, we can use the same kind of argument we did for the primal ratio test.  -->
 
 Then we apply a ratio test similar to that in primal simplex. Let
 
@@ -357,15 +419,60 @@ E = min(
 <BR>
 <BR>
 
-## Comparison with Dualizing and then doing normal simplex method
+## Comparison with dualizing and then doing normal simplex method
 To understand this better, we can explicitly look at the dual problem at the same time and see how this matches up with the usual ratio test in the usual simplex algorithm.....
-<BR>
-<BR>
-<BR>
 
+## Sufficiency for optimality
+For a linear program and dual, with solutions $\tilde{x}, \tilde{y}$ respectively and $c^T \tilde{x} = \tilde{y} ^Tb$ then both solutions are optimal. 
+
+**Proof:** by the weak duality theorem, $c^T x \leq y^T b$. Given $c^T \tilde{x} = \tilde{y}^T b$, then  $c^Tx \leq c^T \tilde{x}$ ie $\tilde{x}$ is optimal. We can use the exact same argument for y.
+
+
+## Relationship between dual and primal solution
+Let B be a basis for the primal optimal solution and let $y = c_B^T A_B^{-1}$. Then y is dual optimal.
+
+$$
+\begin{aligned}
+y &= c_B A_B^{-1} \\
+y^TA &= c_B^T A_B^{-1}A\\
+ &= c_BA_B^{-1}[A_B, A_N] \\
+&= [c_B, c_BA_B^{-1}A_N ] \\
+\therefore
+y^TA - c &= [0,  c_BA_B^{-1} - c_N ] \\
+\text{[because B optimal]}&= [0, \text{reduced cost}] >= 0\\
+\therefore y^TA &\geq c \text{ y is feasible}
+\end{aligned}
+$$
+
+and,
+$$
+y^Tb = c_B^TA_B^{-1}b = cB^Tx_B = c^T x
+$$
+
+By the sufficiency condition, y is optimal.
+## Complementary slackness
+Take primal problem: max $c^T x, Ax = b, x \geq 0$, and its corresponding dual $y^Tb, y^TA \geq c^T \leftrightarrow y^TA - v = c^T$. 
+
+$$
+\boxed{
+\text{x, y optimal} \Leftrightarrow v^T x = 0
+}
+$$
+
+**Proof** 
+$$
+\begin{aligned}
+c^Tx &= (y^TA - v)x \\
+&= y^TAx - vx \\
+&= y^Tb - v^Tx \\
+c^Tx = y^Tb &\Leftrightarrow v^Tx = 0
+\end{aligned}
+$$
 
 # Integer Programming
-## Branch and Bound
+
+## Gomory cuts
+## Branch and bound
 If we have an integer problem where some of the variables are required to be integral, we can use branch and bound with the simplex method. Branch and bound is a more general method/framework than just linear programming, but we don't need to explain the method in general.
 
 - Solve the LP. If the solution is integral (as requred) then we are done. If not, then we take the relaxation value to be our upper bound and define a lower bound by finding an integral solution (eg round all variables down)
@@ -398,7 +505,6 @@ graph TD;
 ## How do we do this in practise?
 We don't want to actually build a tree, what we do instead is use a queue data-structure. 
 
-<!-- Take the most fractional variable and branch - create two problems: -->
 - Solve linear relaxation
 - Queue = most fractional var, $x_{i_1}$
 
