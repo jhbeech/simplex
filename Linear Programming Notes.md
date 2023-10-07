@@ -68,7 +68,7 @@ $$
 c \cdot s \gt c \cdot v  \\
 \therefore \lambda \in [0,1] \Rightarrow \\
 c \cdot (v + \lambda (s - v)) = \\
-= c \cdot v + \lambda(c \cdot s - c \cdot v) \gt c \cdot v
+c \cdot v + \lambda(c \cdot s - c \cdot v) \gt c \cdot v
 $$
 
 Therefore, if we move at all toward s, the obj will increase - contradicting our assumption. The contradiction only exists if 
@@ -221,8 +221,6 @@ L = idxmin(
 
 
 
-<BR>
-<BR>
 
 
 # Dual Linear Program
