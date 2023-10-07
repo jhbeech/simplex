@@ -38,11 +38,13 @@ Keeping with our inequalities for a moment, we conceptualise each constraint equ
 ## Basic feasible solution
 A BFS is a vertex on a polytope. Equivalently, for a linear program $\max{c.x | A x = b, x \geq 0 }$, a BFS is 
 a feasible solution x such that there exists an m element set 
+
 $$
 B \subset \{1, ..., n+m\}
 $$
 
 where
+
 $$
 A[:,B] \text{ is non singular}\\
 j \notin B \Rightarrow x_j = 0 
