@@ -26,7 +26,7 @@ x + \lambda (y-x) \in S
 $$
 
 ## Intersection of convex sets is convex
-if $x,y \in S_1, S_2$ where $S_1$ and $S_2$ are both convex. Then for any $x,y \in S_1 \cap S_2, \lambda \in [0,1] \Rightarrow x + \lambda (y-x) \in S_1 \cap S_2$. This is useful because a half-plane: $\{x\in R^n | v \cdot x \leq b\} $ is convex, hence the intersection of many half-planes (the solution space to a linear program) is a convex set.
+if $x,y \in S_1, S_2$ where $S_1$ and $S_2$ are both convex. Then for any $x,y \in S_1 \cap S_2, \lambda \in [0,1] \Rightarrow x + \lambda (y-x) \in S_1 \cap S_2$. This is useful because a half-plane: $\{x\in R^n | v \cdot x \leq b\}$ is convex, hence the intersection of many half-planes (the solution space to a linear program) is a convex set.
 
 ## Optimal solution to an LP is a vertex of the solution polytope.
 An optimal solution will always sit on one of the vertices (red dots above). This is intuitively makes sense as we know that if you are optimizing a linear function, there will be no local maxima, so the maxima occurs at a boundary, and then we can apply the same logic to any boundary - the optimal solution along that boundary will be at the boundary of the boundary. And so on. So the optima will occur at the "intersection of the maximum number of hyperplanes as possible. In 2d this is the intersection of two lines; in 3d this is the intersection of three planes. 
