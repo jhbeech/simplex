@@ -398,7 +398,8 @@ $$
 
 Where 
 
-$$ x_L = \alpha - \sum_N \beta_N x_N \\
+$$
+x_L = \alpha - \sum_N \beta_N x_N \\
 z = z_0 - \sum_N rc_N x_N
 $$
 
@@ -409,7 +410,7 @@ $$
 \begin{aligned}
 (x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L\\
 z &= z_0 - (c_B A_B^{-1}A_N - c_N) x_N\\
-E &= \text{min}_{i|(A_B^{-1}A_N )_{Li} \lt 0}{\frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}}
+E &= \min_{i|(A_B^{-1}A_N )_{Li} \lt 0}{\frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}}
 \end{aligned}
 $$
 
