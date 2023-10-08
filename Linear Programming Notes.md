@@ -451,6 +451,7 @@ y^TA - c &= [0,  c_BA_B^{-1} - c_N ] \\
 $$
 
 and,
+
 $$
 y^Tb = c_B^TA_B^{-1}b = cB^Tx_B = c^T x
 $$
@@ -466,11 +467,12 @@ $$
 $$
 
 **Proof** 
+
 $$
 \begin{aligned}
-c^Tx &= (y^TA - v)x \\
-&= y^TAx - vx \\
-&= y^Tb - v^Tx \\
+c^Tx &= (y^TA - v)x\\
+&= y^TAx - vx\\
+&= y^Tb - v^Tx\\
 c^Tx = y^Tb &\Leftrightarrow v^Tx = 0
 \end{aligned}
 $$
