@@ -387,7 +387,7 @@ $$
 Since all symbols are positive, looking at the coefficient of $x_2$ in our expression for z (and remembering primal optimal only if all coeffs in expr for z are negative) we can see that primal optimality / dual feasibility is retained only if
 
 $$
-rc_1 / \beta_1 < rc_2 \beta_2
+rc_1 / \beta_1 \lt rc_2 \beta_2
 $$
 
 So, to find the leaving variable, $x_L$, we select the basis variable with the most negative value. To find the entering variable, we take
@@ -409,7 +409,7 @@ $$
 \begin{aligned}
 (x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L\\
 z &= z_0 - (c_B A_B^{-1}A_N - c_N) x_N\\
-E &= \min_{i|(A_B^{-1}A_N )_{Li}<0}{\frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}}
+E &= \min_{i|(A_B^{-1}A_N )_{Li} \lt 0}{\frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}}
 \end{aligned}
 $$
 
@@ -445,7 +445,7 @@ y^TA &= c_B^T A_B^{-1}A\\
 &= [c_B, c_BA_B^{-1}A_N ] \\
 \therefore
 y^TA - c &= [0,  c_BA_B^{-1} - c_N ] \\
-\text{[because B optimal]}&= [0, \text{reduced cost}] >= 0\\
+\text{[because B optimal]}&= [0, \text{reduced cost}] \geq 0\\
 \therefore y^TA &\geq c \text{ y is feasible}
 \end{aligned}
 $$
