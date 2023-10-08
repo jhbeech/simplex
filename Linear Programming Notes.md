@@ -71,7 +71,8 @@ c \cdot (v + \lambda (s - v)) = \\
 c \cdot v + \lambda(c \cdot s - c \cdot v) \gt c \cdot v
 $$
 
-Therefore, if we move at all toward s, the obj will increase - contradicting our assumption. The contradiction only exists if 
+Therefore, if we move at all toward s, the obj will increase - contradicting our assumption. The contradiction only exists if
+
 $$ 
 \lambda v + (1-\lambda)s \in S
 $$
@@ -282,22 +283,27 @@ Here we have a constructed a linear program and seen (and essentially proven) th
 
 From this example we can also see how each dual variable corresponds with a constraint.
 
-We can do this same construction in general:
-Take
+We can do this same construction in general: take
+
 $$
 c^T x \\
 \text{subject to } Ax \leq b
 $$
+
 Pre multiplying the constraint by y (row), where $y_i \geq 0$:
 
 $$
 y A x \geq y b
 $$
+
 If we constrain y by:
+
 $$
 y A \geq c^T
 $$
+
 Then by construction:
+
 $$
 yb \geq [yAx] \geq c^T x
 $$
