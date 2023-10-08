@@ -423,8 +423,7 @@ E = min(
 )
 ```
 
-<BR>
-<BR>
+
 
 ## Comparison with dualizing and then doing normal simplex method
 To understand this better, we can explicitly look at the dual problem at the same time and see how this matches up with the usual ratio test in the usual simplex algorithm.....
