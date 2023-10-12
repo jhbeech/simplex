@@ -340,14 +340,6 @@ $$
 }
 $$
 
-We then have:
-
-$$
-\boxed{
-    A \cdot x_{opt} = A^T \cdot y_{opt}    
-}  
-$$
-
 
 
 # Dual Simplex
@@ -407,11 +399,11 @@ $$
 In our matrix notation we have
 
 $$
-% \begin{aligned}
-(x_B)_L = (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L\\
-z = z_0 - (c_B A_B^{-1}A_N - c_N) x_N\\
-E = \min_{i|(A_B^{-1}A_N )_{Li} \lt 0} \frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}
-% \end{aligned}
+\begin{aligned}
+(x_B)_L &= (A_B^{-1} b)_L - (A_B^{-1} A_N x_N)_L\\
+z &= z_0 - (c_B A_B^{-1}A_N - c_N) x_N\\
+E &= \min_{i|(A_B^{-1}A_N )_{Li} \lt 0} \frac{(c_B A_B^{-1}A_N - c_N)_i}{-(A_B^{-1}A_N)_{Li}}
+\end{aligned}
 $$
 
 ```
