@@ -88,9 +88,12 @@ class LpProblem:
         return list(self.basis.keys())
 
     def primal_simplex(
-        self, max_iterations: int, blands_rule: bool = False
+        self,
+        max_iterations: int,
+        blands_rule: bool = False,
+        log_iterations: bool = True,
     ) -> float:
-        """solves maximize c.x subject to A.x == b, x >=0"""
+        """maximizes lp using revised simplex algorithm"""
         A = self.A
         b = self.b
         c = self.c
@@ -105,29 +108,30 @@ class LpProblem:
             self.basis = None
             return -999.0
 
+        A_b_inv = None
+        entering_var = None
+        leaving_var = None
+        leaving_var_loc = None
         for it in range(max_iterations):
             A_b = A[:, basis_vars]
+            A_b_inv = get_inv_sherman_morrison(
+                A, A_b, A_b_inv, entering_var, leaving_var, leaving_var_loc, it
+            )
             A_n = A[:, non_basis_vars]
             c_b = c[basis_vars]
             c_n = c[non_basis_vars]
-            print(
-                f"\riterations: {it}. Objective: {get_objective_value(c_b, A_b, b)}, . Basis: {basis_vars}. Vals {get_basis_values(A_b, b)}",  ## remove this for speed
-                end="",
-            )
-            reduced_costs = get_reduced_costs(A_b, A_n, c_b, c_n)
+            if log_iterations:
+                print(
+                    f"\riterations: {it}. Objective: {get_objective_value(c_b, A_b_inv, b)}",  # , . Basis: {basis_vars}.",  # Vals {get_basis_values(A_b, b)}",
+                    end="",
+                )
+            reduced_costs = get_reduced_costs(A_b_inv, A_n, c_b, c_n)
             entering_var = get_entering_var_primal(
                 reduced_costs, non_basis_vars, blands_rule
             )
             leaving_var = get_leaving_var_primal(
-                basis_vars, A, A_b, b, entering_var
+                basis_vars, A, A_b_inv, b, entering_var
             )
-            ## dev
-            # print(f"{basis_vars=}")
-            # print(f"{non_basis_vars=}")
-            # print(f"{reduced_costs=}")
-            # print(f"{leaving_var=}")
-            # print(f"{entering_var=}")
-            # print()
 
             if leaving_var is None and entering_var is not None:
                 ## this means that the program is unbounded
@@ -136,21 +140,23 @@ class LpProblem:
                 return -999.0
 
             if entering_var is not None and it < max_iterations - 1:
-                basis_vars.remove(leaving_var)
-                basis_vars.append(entering_var)
-                non_basis_vars.remove(entering_var)
-                non_basis_vars.append(leaving_var)
+                leaving_var_loc = basis_vars.index(leaving_var)
+                basis_vars[leaving_var_loc] = entering_var
+                ## need to replace leaving var with entering var (ie they are in same loc)
+                ## for sherman morrison algorithm to work
+                entering_var_loc = non_basis_vars.index(entering_var)
+                non_basis_vars[entering_var_loc] = leaving_var
 
             else:
-                print(
-                    f"\nOptimal solution found: {get_objective_value(c_b, A_b, b)}"
-                )
+                if log_iterations:
+                    print(
+                        f"\nOptimal solution found: {get_objective_value(c_b, A_b_inv, b)}"
+                    )
                 break
-        print()
         self.basis = {
-            b: v for b, v in zip(basis_vars, get_basis_values(A_b, b))
+            b: v for b, v in zip(basis_vars, get_basis_values(A_b_inv, b))
         }
-        self.obj = get_objective_value(c_b, A_b, b)
+        self.obj = get_objective_value(c_b, A_b_inv, b)
 
         return self.obj
 
@@ -178,61 +184,67 @@ class LpProblem:
             print(f"{reduced_costs=}")
             return -999.0
 
+        A_b_inv = None
+        entering_var = None
+        leaving_var = None
+        leaving_var_loc = None
         for it in range(max_iterations):
             A_b = A[:, basis_vars]
+            A_b_inv = get_inv_sherman_morrison(
+                A, A_b, A_b_inv, entering_var, leaving_var, leaving_var_loc, it
+            )
             A_n = A[:, non_basis_vars]
             c_b = c[basis_vars]
             c_n = c[non_basis_vars]
 
             print(
-                f"\r{it}/{max_iterations} obj: {get_objective_value(c_b,A_b,b)}",
+                f"\r{it}/{max_iterations} obj: {get_objective_value(c_b,A_b_inv,b)}",
                 end="",
             )
-            reduced_costs = get_reduced_costs(A_b, A_n, c_b, c_n)
-            basis_vals = np.linalg.inv(A_b) @ b
+            reduced_costs = get_reduced_costs(A_b_inv, A_n, c_b, c_n)
+            basis_vals = A_b_inv @ b
             ## TODO
             # if blands_rule:
             ## use the left most index with negative basis val
             # leaving_var_loc = np.argwhere(basis_vals < 0.0001).min()
             # else:
             leaving_var_loc = np.argmin(basis_vals)
-            tableau = np.linalg.inv(A_b)[leaving_var_loc, :] @ A_n
+            tableau = A_b_inv[leaving_var_loc, :] @ A_n
             if basis_vals.min() > MIN_BASIS_VALS_PRIMAL_FEASIBILITY:
                 ## problem now feasible
                 break
 
-            if tableau.min() >= TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX:  # -0.0001:
+            if tableau.min() >= TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX:
                 print(
                     "Uh oh! this problem is dual unbounded (primal infeasible)"
                 )
-                ## does exception make more sense
                 self.basis = None
                 self.obj = None
                 return -999.0
-            leaving_var_dual = basis_vars[leaving_var_loc]
-            entering_var_dual = non_basis_vars[
-                np.argmin(
-                    np.divide(
-                        reduced_costs,
-                        -tableau,
-                        out=np.array([np.inf] * len(reduced_costs)),
-                        where=tableau < TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX,
-                    )
+            leaving_var = basis_vars[leaving_var_loc]
+            # entering_var = non_basis_vars[leaving_var]
+            entering_var_loc = np.argmin(
+                np.divide(
+                    reduced_costs,
+                    -tableau,
+                    out=np.array([np.inf] * len(reduced_costs)),
+                    where=tableau < TABLEAU_MIN_PIVOT_COL_DUAL_SIMPLEX,
                 )
-            ]
-            basis_vars.remove(leaving_var_dual)
-            basis_vars.append(entering_var_dual)
-            non_basis_vars.remove(entering_var_dual)
-            non_basis_vars.append(leaving_var_dual)
+            )
+            entering_var = non_basis_vars[entering_var_loc]
+            basis_vars[leaving_var_loc] = entering_var
+            ## need to replace leaving var with entering var (ie they are in same loc)
+            ## for sherman morrison algorithm to work
+            non_basis_vars[entering_var_loc] = leaving_var
         print()
         self.basis = {
-            b: v for b, v in zip(basis_vars, get_basis_values(A_b, b))
+            b: v for b, v in zip(basis_vars, get_basis_values(A_b_inv, b))
         }
-        self.obj = get_objective_value(c_b, A_b, b)
+        self.obj = get_objective_value(c_b, A_b_inv, b)
         return self.obj
 
     def get_rounded_objective(self) -> Optional[float]:
-        """if simplex has already been solved, simply rounds all fractional values for x down and finds objective"""
+        """Rounds all fractional values for x down and finds objective"""
         if self.basis:
             return sum(
                 self.c[var] * math.floor(round(val, 6))  ## TODO
@@ -292,6 +304,45 @@ class LpProblem:
                 )
             )
         return branch_probs
+
+    def add_gomory_cut_constraint(self) -> None:
+        """adds gomory cut constraint to LpProblem inplace"""
+        A = self.A
+        b = self.b
+        c = self.c
+        frac_var, _ = self.get_most_fractional_var()
+        if frac_var is None:
+            return 0
+        basis_vars = self.get_basis_vars()
+        A_b = A[:, basis_vars]
+        ## maybe let's save A_b to self
+        ## at the end of simplex instead
+        A_b_inv = np.linalg.inv(A_b)
+        b_i = A_b_inv[frac_var] @ b
+        num_vars = A.shape[1]
+        non_basis_vars = get_non_basic(basis_vars, num_vars)
+        a_ = A_b_inv[frac_var, :] @ A[:, non_basis_vars]
+
+        A_new_row = np.zeros(num_vars)
+        A_new_row[non_basis_vars] = np.floor(a_) - a_
+        b_new_val = np.floor(b_i) - b_i
+
+        A_new_col = np.zeros(A.shape[0] + 1)
+        A_new_col[A.shape[0]] = 1
+        A = np.append(
+            np.append(A, np.array([A_new_row]), axis=0),
+            np.array([A_new_col]).T,
+            axis=1,
+        )
+        b = np.append(b, b_new_val)
+        c = np.append(c, 0)
+
+        self.basis[A.shape[0]] = None
+        self.A = A
+        self.b = b
+        self.c = c
+
+        return 1
 
 
 def branch_and_bound(
@@ -409,30 +460,50 @@ def get_entering_var_primal(
 
 
 def get_reduced_costs(
-    A_b: npt.NDArray[np.float64],
+    A_b_inv: npt.NDArray[np.float64],
     A_n: npt.NDArray[np.float64],
     c_b: npt.NDArray[np.float64],
     c_n: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
     """obj = obj_current_bfs - reduced_costs . x_non_basis
     (x_non_basis = 0). So negative reduced costs -> bring into basis"""
-    return c_b @ np.linalg.inv(A_b) @ A_n - c_n
+    return c_b @ A_b_inv @ A_n - c_n
 
 
 def get_non_basic(basis_vars: list[int], num_columns: int) -> list[int]:
     return [i for i in range(num_columns) if i not in basis_vars]
 
 
+def get_inv_sherman_morrison(
+    A: npt.NDArray[np.float64],
+    A_b: npt.NDArray[np.float64],
+    B_inv: npt.NDArray[np.float64],
+    entering_var_idx: npt.NDArray[np.float64],
+    leaving_var_idx: int,
+    leaving_var_loc: int,
+    iteration: int,
+) -> npt.NDArray[np.float64]:
+    """use sherman morrison formula to get inverse of A_b"""
+    if B_inv is None or iteration % 50 == 0:
+        return np.linalg.inv(A_b)
+    u = A[:, entering_var_idx] - A[:, leaving_var_idx]
+    v = np.zeros(A.shape[0])
+    v[leaving_var_loc] = 1
+    return B_inv - (B_inv @ np.array([u]).T) @ (np.array([v]) @ B_inv) / (
+        1 + v.T @ B_inv @ u
+    )
+
+
 def get_leaving_var_primal(
     basis: list[int],
     A: npt.NDArray[np.float64],
-    A_b: npt.NDArray[np.float64],
+    A_b_inv: npt.NDArray[np.float64],
     b: npt.NDArray[np.float64],
     entering_var: int,
 ) -> int:
     if entering_var is None:
         return None
-    tableau = np.linalg.inv(A_b) @ A[:, entering_var]
+    tableau = A_b_inv @ A[:, entering_var]
     # print(f"{tableau=}")
     if tableau.max() < 0:
         print("\nUh oh! this program is unbounded")
@@ -441,36 +512,60 @@ def get_leaving_var_primal(
     return basis[
         np.argmin(
             np.divide(
-                np.linalg.inv(A_b) @ b,
+                A_b_inv @ b,
                 tableau,
                 ## only search over positive elements of tableau
                 where=tableau >= TABLEAU_MIN_PIVOT_COL_PRIMAL_SIMPLEX,
-                out=np.array([np.inf] * A_b.shape[0]),
+                out=np.array([np.inf] * A_b_inv.shape[0]),
             )
         )
     ]
 
 
 def get_objective_value(
-    c_b: npt.NDArray[np.float64], A_b: npt.NDArray[np.float64], b: np.float64
+    c_b: npt.NDArray[np.float64],
+    A_b_inv: npt.NDArray[np.float64],
+    b: np.float64,
 ) -> float:
-    return c_b @ np.linalg.inv(A_b) @ b
+    return c_b @ A_b_inv @ b
 
 
 def get_basis_values(
-    A_b: npt.NDArray[np.float64], b: npt.NDArray[np.float64]
+    A_b_inv: npt.NDArray[np.float64], b: npt.NDArray[np.float64]
 ) -> npt.NDArray[np.float64]:
-    return np.linalg.inv(A_b) @ b
+    return A_b_inv @ b
 
 
-def main():
+def check_gomory():
+    max_val = 10
+    n = 5
+    m = 5
+    np.random.seed(42)
+    A = np.random.randint(max_val, size=n * m).reshape((n, m))
+    x_ = np.random.randint(max_val, size=m)
+    delta = np.random.randint(max_val, size=n)
+    b = A @ x_ + delta
+    c = np.random.randint(max_val, size=m)
+    A = np.append(A, np.identity(A.shape[0]), axis=1)
+    c = np.append(c, np.zeros(A.shape[0]))
+    prob = LpProblem(A, b, c, slacks_included=True)
+    prob.set_initial_basis()
+    prob.primal_simplex(100)
+    print(prob.basis)
+
+    print(prob.get_most_fractional_var())
+    # prob.obj
+    for _ in range(100):
+        prob.add_gomory_cut_constraint()
+        prob.primal_simplex(100)
+        print(prob.basis)
+
+
+def check_bnb(n, m, max_val):
     import pulp
     import time
+    import matplotlib.pyplot as plt
 
-    np.random.seed(42)
-    n = 15
-    m = 15
-    max_val = 100
     A = np.random.randint(max_val, size=n * m).reshape((n, m))
     x_ = np.random.randint(max_val, size=m)
     delta = np.random.randint(max_val, size=n)
@@ -486,16 +581,66 @@ def main():
         prob_pulp += lhs == rhs
     status = prob_pulp.solve(pulp.PULP_CBC_CMD())
     t1 = time.monotonic()
-    obj, sol, trajectory, nodes_searched, branches_pruned = branch_and_bound(
-        A, b, c, 1000000, 100000
-    )
+    (
+        obj,
+        var_values,
+        trajectory,
+        nodes_searched,
+        branches_pruned,
+    ) = branch_and_bound(A, b, c, 1000000, 100000)
     t2 = time.monotonic()
-
     print("\n\n")
     print(f"obj: {obj}. time: {t2 - t1}. ")
     print(f"pulp obj: {prob_pulp.objective.value()} pulp time: {t1 - t0}")
+    print(
+        f"searched {nodes_searched} nodes. pruned {branches_pruned} branches."
+    )
+    plt.plot(trajectory)
+    plt.plot([prob_pulp.objective.value()] * len(trajectory))
+    plt.show()
     return None
 
 
 if __name__ == "__main__":
-    main()
+    np.random.seed(42)
+    check_bnb(25, 25, 100)
+    # np.random.seed(42)
+    # n = 5
+    # m = 5
+    # max_val = 10
+    # A = np.random.randint(max_val, size=n * m).reshape((n, m))
+    # x_ = np.random.randint(max_val, size=m)
+    # delta = np.random.randint(max_val, size=n)
+    # b = A @ x_ + delta
+    # c = np.random.randint(max_val, size=m)
+    # A = np.append(A, np.identity(A.shape[0]), axis=1)
+    # c = np.append(c, np.zeros(A.shape[0]))
+
+    # basis_vars = list(range(n))
+    # B = A[:, basis_vars]
+    # B_inv = np.linalg.inv(A[:, basis_vars])
+
+    # entering_var_idx = 6
+    # leaving_var_idx = 2
+    # leaving_var_loc = 2
+
+    # u = A[:, entering_var_idx] - A[:, leaving_var_idx]
+    # v = np.array([1 if i == leaving_var_loc else 0 for i in range(m)])
+
+    # B_new = B + np.outer(u, v)
+
+    # print(np.linalg.inv(B_new))
+    # print()
+    # print(
+    #     B_inv
+    #     - (B_inv @ np.array([u]).T)
+    #     @ (np.array([v]) @ B_inv)
+    #     / (1 + v.T @ B_inv @ u)
+    # )
+    # print()
+
+    # print(
+    #     get_inv_sherman_morrison(
+    #         A, B_inv, entering_var_idx, leaving_var_idx, leaving_var_loc
+    #     )
+    # )
