@@ -119,6 +119,7 @@ E = idxmin(
 
 ## Is this well defined? What if we reorder the basis?
 Let $\tilde{B}$ be a 'reordering' of $B$. Then we are reordering the columns of $c_B$ and $A_B$ by some permutation matrix $P$.
+
 $$
 c_{\tilde{B}} \cdot A_{\tilde{B}}^{-1} = (c_B \cdot P) \cdot (A_B \cdot P)^{-1} = c_B \cdot P P^{-1} A_B = c_B \cdot A_B
 $$
