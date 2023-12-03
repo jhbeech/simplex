@@ -15,10 +15,11 @@ Actually they often look different but we can always convert them to look like t
 To solve this problem we convert the inequality to an equality by adding slack variables. eg $x_1 \leq 1 \leftarrow x_1 + s_1 = 1$
 
 The solution space to $Ax \leq b$ is called a bounded *convex*$^*$ polytope
+
 <img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/3dpoly.svg" width=200>
 
 ## Convex set
-we say a space S is convex if you can draw a line between any two points in the set, and every point on that line is in the set:
+We say a space S is convex if you can draw a line between any two points in the set, and every point on that line is in the set:
 
 $$
 \forall x,y \in S, \lambda \in [0,1] \Rightarrow\\
@@ -29,7 +30,7 @@ $$
 if $x,y \in S_1, S_2$ where $S_1$ and $S_2$ are both convex. Then for any $x,y \in S_1 \cap S_2, \lambda \in [0,1] \Rightarrow x + \lambda (y-x) \in S_1 \cap S_2$. This is useful because a half-plane: $\{x\in R^n | v \cdot x \leq b\}$ is convex, hence the intersection of many half-planes (the solution space to a linear program) is a convex set.
 
 ## Optimal solution to an LP is a vertex of the solution polytope.
-An optimal solution will always sit on one of the vertices (red dots above). This is intuitively makes sense as we know that if you are optimizing a linear function, there will be no local maxima, so the maxima occurs at a boundary, and then we can apply the same logic to any boundary - the optimal solution along that boundary will be at the boundary of the boundary. And so on. So the optima will occur at the "intersection of the maximum number of hyperplanes as possible. In 2d this is the intersection of two lines; in 3d this is the intersection of three planes. 
+An optimal solution will always sit on one of the vertices (red dots above). This is intuitively makes sense as we know that if you are optimizing a linear function, there will be no local maxima, so the maxima occurs at a boundary, and then we can apply the same logic to any boundary - the optimal solution along that boundary will be at the boundary of the boundary. And so on. So the optima will occur at the intersection of the maximum number of hyperplanes as possible. In 2d this is the intersection of two lines; in 3d this is the intersection of three planes. 
 
 All of the above discussion was thinking in inequality land - how does this all work when we have converted to our equality version of the problem? 
 
@@ -77,13 +78,11 @@ $$
 \lambda v + (1-\lambda)s \in S
 $$
 
-This holds true in any convex set by definition. If we have a snakey set, then this statement doesn't hold and in fact we can have locally optimal vertices that are not globally optimal. So what have we just proved? If we have a local maxima on our *convex* set and linear function, then it is a global maxima. This then implies that if a vertex has a larger objective than its neighbouring vertices, then it is the global maximum. 
+This holds true in any convex set by definition. If we have a snakey set, then this statement doesn't hold and in fact we can have locally optimal vertices that are not globally optimal. So what have we just proved? If we have a local maxima on our *convex* set and linear function, then it is a global maxima. This then implies that if a vertex has a larger objective than its neighbourhood (not neighbouring vertices) then it is the global maximum. 
 
-(
-     We are missing something for that last sentence. We have proved that (local max $\Rightarrow$ global max) not (bigger than neighbouring vertices $\Rightarrow$ global max). And we have not shown that (bigger than neighbouring vertices $\Rightarrow$ local max). It definitely seems true though geometrically. If you are at a vertice, any direction you move is a linear combination of the direction vectors towards the neighbouring vertices - therefore, bigger than neighbour vertices $\Rightarrow$ local maxima. Not sure how to show mathematically. 
-)
+Next thing would be to show that if larger than neighbourhood then larger than neighbouring vertices.
 
-
+This definitely seems true geometrically. If you are at a vertice, any direction you move is a linear combination of the direction vectors towards the neighbouring vertices - therefore, bigger than neighbour vertices $\Rightarrow$ local maxima. Not sure how to show mathematically. 
 
 ## The Simplex Algorithm
 From the above discussion, we have seen that an optimal solution to a linear program is on a vertex, and that if we keep moving to neighbouring vertices with larger objectives, we will eventually find the global max.
@@ -110,13 +109,21 @@ $$
 If the reduced cost of a non basic variable $x_E \in x_N$ is negative, then we can increase z by giving $c_N$ a positive value, so it 'enters the basis'. 
 
 ```
-reduced_costs = c[basis] @ A[,:basis].inv() A[:,nonbasis] - c[nonbasis]
+reduced_costs = c[basis] @ A[,:basis].inv() @ A[:,nonbasis] - c[nonbasis]
 ## getting actual idx, not iloc
 E = idxmin(
     reduced_costs,
     return_null_if=reduced_costs.isnull()
 )
 ```
+
+## Is this well defined? What if we reorder the basis?
+Let $\tilde{B}$ be a 'reordering' of $B$. Then we are reordering the columns of $c_B$ and $A_B$ by some permutation matrix $P$.
+$$
+c_{\tilde{B}} \cdot A_{\tilde{B}}^{-1} = (c_B \cdot P) \cdot (A_B \cdot P)^{-1} = c_B \cdot P P^{-1} A_B = c_B \cdot A_B
+$$
+
+So basically we have seen why the order of the columns in $A_B$ and $c_B$ is not important (but needs to be the same between the two).
 
 ## Interpretation of reduced costs
 the reduced cost of variable j is by definition
@@ -126,8 +133,6 @@ $$
 $$
 
 So it tells us what rate our objective will decrease by if we bring $x_j$ into the basis. 
-
-Thinking 
 
 ## Leaving Variable and Ratio Test
 We need to select the 'leaving variable' $x_L$ so that we maintain feasibility (keep variables greater than 0). 
@@ -473,6 +478,12 @@ $$
 # Integer Programming
 
 ## Gomory cuts
+- let $\tilde{a}_{ij} =  (A_b^{-1} A_n)_{ij}$, $\tilde{b}_i = (A_b^{-1} b)_i = (A_b)^{-1}_{ij} b_j$ 
+- So, $x_b + \tilde{a} x_n = \tilde{b}$
+- The following constraint removes the relaxation but does not remove any integral solutions: $\tilde{b_i} - \lfloor{\tilde{b_i}}\rfloor - 
+    \sum_j{(\tilde{a}_{ij} - \lfloor{\tilde{a}_{ij}\rfloor})}x_j \geq 0$  
+
+
 ## Branch and bound
 If we have an integer problem where some of the variables are required to be integral, we can use branch and bound with the simplex method. Branch and bound is a more general method/framework than just linear programming, but we don't need to explain the method in general.
 
