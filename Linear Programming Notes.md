@@ -479,11 +479,66 @@ $$
 # Integer Programming
 
 ## Gomory cuts
-- let $\tilde{a}_{ij} =  (A_b^{-1} A_n)_{ij}$, $\tilde{b}_i = (A_b^{-1} b)_i = (A_b)^{-1}_{ij} b_j$ 
-- So, $x_b + \tilde{a} x_n = \tilde{b}$
-- The following constraint removes the relaxation but does not remove any integral solutions: $\tilde{b_i} - \lfloor{\tilde{b_i}}\rfloor - 
-    \sum_j{(\tilde{a}_{ij} - \lfloor{\tilde{a}_{ij}\rfloor})}x_j \geq 0$  
 
+$$
+x = A_B^{-1} b - A_B^{-1} A_N x_N\\
+$$
+
+Looking at this equation, you can see that each row of $A_B^{-1}$ has a correspondence with a variable (essentially via multiplying by b). 
+
+The recipe for a gomory cut is:
+1. Select a fractional variable. That variable has an equation
+2. 
+$$
+x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Rightarrow \\
+x_f - \tilde{b}_f + \tilde{a}_{fj} x_j = 0
+$$
+(j summing over non basic)
+3. 
+$$
+x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) 
++ (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
+
+x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j = \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j )
+$$
+
+For any integer point inside the feasible region, the LHS is an integer. For any integer point inside the feasible region, the RHS is strictly less than 1. (first term is a fraction and second is negative). Therefore:
+
+$
+x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j \leq 0
+$
+
+We have shown that the above inequality is true for any feasible integer point, however we have not shown any use of this fact. 
+
+Our BFS has $x_j = 0$, so the RHS is strictly positive. Hence our BFS is removed from the region by adding the above constraint.
+
+### Gomory Cut Recipe
+
+1. Get relaxation sol
+2. Find most fractional var:
+```python
+frac_var, frac_var_loc, frac_val = get_most_frac_var()
+```
+3. Get equation for that var:
+```
+a_gom = A_B_inv[frac_var_loc, :] @ A_N
+b_gom = A_B_inv[frac_var_loc, :] @ b
+```
+4. New constraint is 
+```
+a_gom @ x[non_basis] + x[frac_var] <= b_gom
+```
+Which is essentially
+```
+new_constraint = [
+    a_gom[i]
+    if i in non_basis
+    else 1 if i == frac_var
+    else 0
+    for i in vars
+]
+new_constraint @ x <= b_gom
+```
 
 ## Branch and bound
 If we have an integer problem where some of the variables are required to be integral, we can use branch and bound with the simplex method. Branch and bound is a more general method/framework than just linear programming, but we don't need to explain the method in general.
