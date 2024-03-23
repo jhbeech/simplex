@@ -18,7 +18,7 @@ The solution space to $Ax \leq b$ is called a bounded *convex*$^*$ polytope
 
 <img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/3dpoly.svg" width=200>
 
-## Convex set
+## **Convex set**
 We say a space S is convex if you can draw a line between any two points in the set, and every point on that line is in the set:
 
 $$
@@ -26,15 +26,38 @@ $$
 x + \lambda (y-x) \in S
 $$
 
-## Intersection of convex sets is convex
+## **Intersection of convex sets is convex**
 if $x,y \in S_1, S_2$ where $S_1$ and $S_2$ are both convex. Then for any $x,y \in S_1 \cap S_2, \lambda \in [0,1] \Rightarrow x + \lambda (y-x) \in S_1 \cap S_2$. This is useful because a half-plane: $\{x\in R^n | v \cdot x \leq b\}$ is convex, hence the intersection of many half-planes (the solution space to a linear program) is a convex set.
 
-## Optimal solution to an LP is a vertex of the solution polytope.
+## **Optimal solution to an LP is a vertex of the solution polytope.**
 An optimal solution will always sit on one of the vertices (red dots above). This is intuitively makes sense as we know that if you are optimizing a linear function, there will be no local maxima, so the maxima occurs at a boundary, and then we can apply the same logic to any boundary - the optimal solution along that boundary will be at the boundary of the boundary. And so on. So the optima will occur at the intersection of the maximum number of hyperplanes as possible. In 2d this is the intersection of two lines; in 3d this is the intersection of three planes. 
 
 All of the above discussion was thinking in inequality land - how does this all work when we have converted to our equality version of the problem? 
 
 Keeping with our inequalities for a moment, we conceptualise each constraint equation as a boundary/hyper-plane (solution is on the boundary when the inequality is tight) and we also have $x_1 \geq 0, x_2 \geq 0$ which similarly define boundaries. So we are at the intersection of D boundaries if D inequalities are tight. Now moving to our new formulation, this simply means D variables (including slacks and our original variables) are 0! So if we initially (before converting inequalities to equalities) have m constraints and n variables, then the solution will occur at the intersection of n of the m constraints. ie we will have n 0s in our optimal solution (when include the slack variables). This is called a **basic feasible solution**. 
+
+## **Formal proof of the above**
+### **A convex polytope is the convex combination of its vertices**
+Take a point $p$ inside a polytope with vertices $\{v_P\}$. Take one of the vertices $v$ and consider where $\overrightarrow{vp}$ intersects with the boundary of the polytope, $B$. If it intesects at one the vertices, then we are done. Otherwise the point $k = \overrightarrow{vp} \cap B$ is interior to a $D - 1$ dimensional convex polytope. So we can prove this result inductively. A one dimensional polytope is just a line which clearly is a convex combination of its vertices. And we have just proved that if a $D - 1$ convex polytope is the convex combination of its vertices then a $D$ dimensional one is.
+### **A convex function is globally optimal at a vertex**
+Take a point, $p$, which is the unique global minumum of a linear function, $f$. Now by the above result:
+
+$$
+p = \sum{\lambda_i v_i} \hspace{0.1cm} \vert \hspace{0.1cm} \sum \lambda_i = 1
+$$
+
+By linearity of $f$,
+
+$$
+f(p) = \sum \lambda_i f(v_i)
+$$
+
+Since $f(p) \lt f(v_i) $ then
+$$
+\sum \lambda_i f(v_i) \gt \sum\lambda_i f(p) = f(p) \sum \lambda_i = f(p)
+$$
+
+Hence we have a contradiction.
 
 ## Basic feasible solution
 A BFS is a vertex on a polytope. Equivalently, for a linear program $\max{c.x | A x = b, x \geq 0 }$, a BFS is 
@@ -484,17 +507,14 @@ $$
 x = A_B^{-1} b - A_B^{-1} A_N x_N\\
 $$
 
-Looking at this equation, you can see that each row of $A_B^{-1}$ has a correspondence with a variable (essentially via multiplying by b). 
-
-The recipe for a gomory cut is:
-1. Select a fractional variable. That variable has an equation
-2. 
+The above is how we express each basic variable in terms of the non basic variables, giving us some representation of the constraints. In applying gomory cuts, we select a fractional basic variable and construct a new constraint out of the equation for that variable. 
 $$
-x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Rightarrow \\
+x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Leftrightarrow: \\
 x_f - \tilde{b}_f + \tilde{a}_{fj} x_j = 0
 $$
-(j summing over non basic)
-3. 
+(j summing over non basic).
+
+Splitting this into fractional and integral parts, we get
 $$
 x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) 
 + (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
@@ -505,7 +525,7 @@ $$
 For any integer point inside the feasible region, the LHS is an integer. For any integer point inside the feasible region, the RHS is strictly less than 1. (first term is a fraction and second is negative). Therefore:
 
 $
-x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j \leq 0
+\tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j ) \leq 0
 $
 
 We have shown that the above inequality is true for any feasible integer point, however we have not shown any use of this fact. 
@@ -526,18 +546,18 @@ b_gom = A_B_inv[frac_var_loc, :] @ b
 ```
 4. New constraint is 
 ```
-a_gom @ x[non_basis] + x[frac_var] <= b_gom
+(a_gom - a_gom.floor()_ @ x[non_basis] + x[frac_var] <= b_gom - b_gom.floor()
 ```
 Which is essentially
 ```
 new_constraint = [
-    a_gom[i]
+    a_gom[i] - floor(a_gom[i])
     if i in non_basis
     else 1 if i == frac_var
     else 0
     for i in vars
 ]
-new_constraint @ x <= b_gom
+new_constraint @ x <= b_gom - floor(b_gom)
 ```
 
 ## Branch and bound
