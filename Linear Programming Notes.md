@@ -567,25 +567,27 @@ x = A_B^{-1} b - A_B^{-1} A_N x_N\\
 $$
 
 The above is how we express each basic variable in terms of the non basic variables, giving us some representation of the constraints. In applying gomory cuts, we select a fractional basic variable and construct a new constraint out of the equation for that variable. 
+
 $$
 x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Leftrightarrow: \\
 x_f - \tilde{b}_f + \tilde{a}_{fj} x_j = 0
 $$
+
 (j summing over non basic).
 
 Splitting this into fractional and integral parts, we get
+
 $$
 x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) 
 + (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
-
 x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j = \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j )
 $$
 
 For any integer point inside the feasible region, the LHS is an integer. For any integer point inside the feasible region, the RHS is strictly less than 1. (first term is a fraction and second is negative). Therefore:
 
-$
+$$
 \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j ) \leq 0
-$
+$$
 
 We have shown that the above inequality is true for any feasible integer point, however we have not shown any use of this fact. 
 
