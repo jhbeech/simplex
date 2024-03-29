@@ -18,6 +18,17 @@ jobs:
       - name: Render images for every Mermaid diagram in all Markdown files (*.md) in the repo
         uses: nielsvaneck/render-md-mermaid@v2
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+
+      - name: Render Mermaid diagrams to SVG and PNG
+        run: |
+          find . -name "*.md" -print0 | while IFS= read -r -d '' file; do
+            mmdc -i "$file" -o "${file%.md}.svg" -b transparent
+            rsvg-convert -f png -o "${file%.md}.png" "${file%.md}.svg"
+          done
+
       - name: Commit rendered png and svg files
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
