@@ -1,3 +1,5 @@
+# .github/workflows/render-md-mermaid.yml
+
 name: render-md-mermaid
 
 on:
@@ -13,18 +15,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Specify shell explicitly for each run step
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y librsvg2-bin
-        shell: bash
-
-      - name: Render Mermaid diagrams to SVG and PNG
-        run: |
-          find . -name "*.md" -print0 | while IFS= read -r -d '' file; do
-            mmdc -i "$file" -o "${file%.md}.svg" -b transparent
-            rsvg-convert -f png -o "${file%.md}.png" "${file%.md}.svg"
-          done
+      - name: Render images for every Mermaid diagram in all Markdown files (*.md) in the repo
+        uses: nielsvaneck/render-md-mermaid@v2
         shell: bash
 
       - name: Commit rendered png and svg files
@@ -32,3 +24,4 @@ jobs:
         with:
           file_pattern: "*[.svg,.png]"
           commit_message: automatically rendered mermaid diagrams
+        shell: bash
