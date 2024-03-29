@@ -569,7 +569,7 @@ $$
 The above is how we express each basic variable in terms of the non basic variables, giving us some representation of the constraints. In applying gomory cuts, we select a fractional basic variable and construct a new constraint out of the equation for that variable. 
 
 $$
-x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Leftrightarrow: \\
+x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j \\
 x_f - \tilde{b}_f + \tilde{a}_{fj} x_j = 0
 $$
 
