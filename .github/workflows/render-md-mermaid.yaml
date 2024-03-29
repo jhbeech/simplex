@@ -4,8 +4,9 @@ name: render-md-mermaid
 
 on:
   push:
-    paths:
-      - '**.md'
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   render-md-mermaid:
