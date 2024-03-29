@@ -633,7 +633,7 @@ If we have an integer problem where some of the variables are required to be int
     
 - Continue with the above process, traversing more of the tree until our lower bound and upper bound are equal.
 
-::: mermaid
+:::mermaid
 graph TD;
     A{x1}-->|<= floor v1| B{x2}
     A{x1}-->|>=ceil v1| C{x2}
