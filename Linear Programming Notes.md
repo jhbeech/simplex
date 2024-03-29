@@ -649,6 +649,7 @@ graph TD;
 :::
 
 
+
 ## How do we do this in practise?
 We don't want to actually build a tree, what we do instead is use a queue data-structure. 
 
