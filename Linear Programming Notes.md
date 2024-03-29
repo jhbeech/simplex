@@ -81,7 +81,7 @@ Unique maximum of linear function over polytope.
 
 ...
 
-## A linear function's local maximum over a convex set is a global maximum
+## More intuition around a linear function's local maximum over a convex set being a global maximum
 The simplex algorithm is a greedy algorithm that lets us move from one BFS / vertex to a better neighbouring BFS. This terminates when there are no better neighbouring BFSs. Although we are pretty confident (didn't prove it) that a solution occurs at a vertex, we are not sure that we can implement a greedy algorithm this way - eg imagine a set that has a kindof pointy snake a shape that snakes towards the optimum, away and then back towards the optimum. 
 
 (We will now see that this cannot happen, because the intersection of linear inequalities cannot be snakey - it can only be kindof like a pointy ball. To see this formally:)
@@ -123,7 +123,7 @@ $$
 \begin{aligned}
 x_B &= A_B^{-1} (b - A_N x_N) = A_B^{-1}b \\
 \text{reduced costs} &= c_B^T A_B^{-1}A_N − c_N^T \\
-z &= c_B^T A_B^{-1}b - \text{reduced costs}   \cdot c_N,\\ c_N &= 0
+z &= c_B^T A_B^{-1}b - \text{reduced costs}   \cdot x_N,\\ x_N &= 0
 \end{aligned}
 $$
 
@@ -188,7 +188,39 @@ $$
 
 Hence the new solution is feasible. 
 
+## Example to illustrate the above
+Take the following tableau:
 
+$$
+z = 6 - 3x_1 - 3x_2\\
+x_3 = 1 - 3x_1 - 2x_2\\
+x_4 = 2 - 2x_1 + 1x_2\\
+x_5 = 3 + x_1 - 3x_1
+$$
+
+The negative cofficients in the expression for z (the positive reduced costs) show us that $z$ can be pushed down. Take $x_2$ to be the entering variable into the basis (make it non zero). Which variable shall we have leave the basis? We can't let it be $x_4$ as that would produce an infeasibility:
+$$
+x_2 = -2 + 2x_1 + x_4
+$$
+
+So it is between $x_1$ and $x_3$. Let's look at what happens in each option. Let $x_3$ be the leaving variable:
+
+$$
+\begin{aligned}
+x_3 &= \frac{1}{2} - \frac{3}{2}x_1 - \frac{1}{2}x_3 \\ \Rightarrow
+x_5 &= 3 + x_1  - 3(\frac{1}{2} +...)= \frac{3}{2} +...
+\end{aligned}
+$$
+
+This is feasible because the constant / the coefficient the leaving variable * the coefficient of the leaving variable in the other equation is greater than 0. 
+
+If we let $x_5$ be the leaving variable we would get:
+$$
+x_2 = 1 + ..\\
+\Rightarrow x_3 = 1 - 3x_1 - 2(1 + ...) = -1 + ...
+$$
+
+Which is infeasible.s
 ## Implementing this Method
 The above gives us a basic outline of the simplex method: 
 - We take a feasible basis
@@ -251,8 +283,34 @@ L = idxmin(
 ```
 
 
+## Simplex challenges
+If we have a tableau like this:
+$$
+\begin{aligned}
+z &= 6 - 3x_1 - 3x_2\\
+x_3 &= 1 + 3x_1 - 2x_2\\
+x_4 &= 3 + 2x_1 +1x_2
+\end{aligned}
+$$
+
+In this case we 'can't pivot' when we take $x_1$ to be our leaving variable because there are no negative coefficients of $x_1$. What this means is that we can increase $x_1$ and arbitrarily decrease our cost function, the problem is unbounded.
+
+## Cycling / Degeneracy
+
+There are cases where selecting the largest reduced cost will lead to a pivot that does not improve the cost function (we are still on the same vertex because one of the basis variables is 0). This does not often happen but there are some ways around it - eg Bland's rule.
 
 
+## Finding a first BFS
+min $c.x$, st $A.x = b$.
+
+Introduce artifical variables $y$.
+
+$$
+Ax + y = b
+$$
+
+Allow $y$ to be negative and set  $y = b$. Now:
+Minimize $\sum y_i$, subject to $Ax + y = b$. There will be a feasible solution to the original problem if y=0 is the solution, and the result for $x$ can be taken as a solution to the initial problem.
 
 # Dual Linear Program
 ## First Inuition
