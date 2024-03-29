@@ -24,4 +24,3 @@ jobs:
         with:
           file_pattern: "*[.svg,.png]"
           commit_message: automatically rendered mermaid diagrams
-        shell: bash
