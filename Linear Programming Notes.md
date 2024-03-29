@@ -578,8 +578,7 @@ $$
 Splitting this into fractional and integral parts, we get
 
 $$
-x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) 
-+ (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
+x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) + (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
 x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j = \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j )
 $$
 
