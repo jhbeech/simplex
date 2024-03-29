@@ -10,6 +10,7 @@ on:
 jobs:
   render-md-mermaid:
     runs-on: ubuntu-latest
+    shell: bash
 
     steps:
       - name: Checkout code
