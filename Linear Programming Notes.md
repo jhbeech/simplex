@@ -52,7 +52,7 @@ $$
 f(p) = \sum \lambda_i f(v_i)
 $$
 
-Since $f(p) \lt f(v_i) $ then
+Since $f(p) \lt f(v_i)$ then
 $$
 \sum \lambda_i f(v_i) \gt \sum\lambda_i f(p) = f(p) \sum \lambda_i = f(p)
 $$
