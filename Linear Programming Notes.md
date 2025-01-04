@@ -52,7 +52,8 @@ $$
 f(p) = \sum \lambda_i f(v_i)
 $$
 
-Since $f(p) \lt f(v_i) $ then
+Since $f(p) \lt f(v_i)$ then
+
 $$
 \sum \lambda_i f(v_i) \gt \sum\lambda_i f(p) = f(p) \sum \lambda_i = f(p)
 $$
@@ -566,25 +567,26 @@ x = A_B^{-1} b - A_B^{-1} A_N x_N\\
 $$
 
 The above is how we express each basic variable in terms of the non basic variables, giving us some representation of the constraints. In applying gomory cuts, we select a fractional basic variable and construct a new constraint out of the equation for that variable. 
+
 $$
-x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j :\Leftrightarrow: \\
+x_f = (A_B^{-1})_{fi} b_i - (A_B^{-1})_{fi} (A_N)_{ij} (x_N)_j \\
 x_f - \tilde{b}_f + \tilde{a}_{fj} x_j = 0
 $$
+
 (j summing over non basic).
 
 Splitting this into fractional and integral parts, we get
-$$
-x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) 
-+ (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
 
+$$
+x_f - (\tilde{b}_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{b}_f \rfloor) + (\tilde{a}_{fj} x_j  - \lfloor \tilde{a}_{fj} \rfloor x_j + \tilde{a}_{fj} x_j) = 0 \Rightarrow \\
 x_f - \lfloor \tilde{b}_f \rfloor + \lfloor \tilde{a}_{fj} \rfloor x_j = \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j )
 $$
 
 For any integer point inside the feasible region, the LHS is an integer. For any integer point inside the feasible region, the RHS is strictly less than 1. (first term is a fraction and second is negative). Therefore:
 
-$
+$$
 \tilde{b}_f - \lfloor \tilde{b}_f \rfloor -( \tilde{a}_{fj} x_j - \lfloor \tilde{a}_{fj} \rfloor x_j ) \leq 0
-$
+$$
 
 We have shown that the above inequality is true for any feasible integer point, however we have not shown any use of this fact. 
 
@@ -632,7 +634,7 @@ If we have an integer problem where some of the variables are required to be int
     
 - Continue with the above process, traversing more of the tree until our lower bound and upper bound are equal.
 
-::: mermaid
+:::mermaid
 graph TD;
     A{x1}-->|<= floor v1| B{x2}
     A{x1}-->|>=ceil v1| C{x2}
@@ -646,6 +648,7 @@ graph TD;
     G-->....
     ...
 :::
+
 
 
 ## How do we do this in practise?
@@ -663,66 +666,3 @@ We don't want to actually build a tree, what we do instead is use a queue data-s
 
 
 - Because we have developed the dual simplex method, that allows us to solve the branch problems quickly. On a branch node we have the basis, we then add the <= v1 or >= v1 constraint, making the problem primal infeasible. We use the dual simplex method to fix primal feasibility.
-
-<!-- Take a maximization LP (```max c.x st A.x <= b```) with:
-```
-A = [4,1,0]
-    [2,1,1]
-    [1,0,1]
-
-b = [6,4,2].T
-c = [5,3,4].T
-```
-
-The optimal solution is ```x = [0.0, 2.0, 2.0]```
-
-The dual is a minimization problem (```min c.y st A.y >= b```) with
-```
-A_dual = [4,2,1]
-         [1,1,0]
-         [0,1,1]
-
-b_dual = [5,3,4].T
-c _dual = [6,4,2].T
-```
-
-The optimal solution is ```y = [0.0, 3.0, 1.0]```
-
-
-Let's now add a constraint to the original lp, so that the solution is infeasible.
-
-```
-A = [4,1,0]
-    [2,1,1]
-    [1,0,1]
-    [0,1,1]
-
-b = [5,3,4,3].T
-```
-$\Rightarrow$
-```
-A_dual = [4,2,1,0]
-         [1,1,0,1]
-         [0,1,1,1]
-c_dual = [5,3,4,3].T
-```
-
-Our dual basis is ```[1,2]```, which remains dual feasible (since ```y[4]=0```). Then our reduced costs are:
-``` 
-RC = - c_dual[nonbasis] + c_dual[basis] @ A_dual[basis].inv() @A_dual[nonbasis] 
-```
-***
-<BR><BR><BR>
-
-|0|0|1|1|0|10| 
-|-|-|-|-|-|-|
-|1|0|2|-1|0|2|
-|0|1|-1|1|0|2|
-|0|0|-2|1|1|-1| 
-
-Negative third RHS indicates infeasible primal third constraint $\leftrightarrow$ non optimal third dual variable. So $s_3$ / $x_5$ should be the **leaving variable**. If there are multiple, we can choose any - for example we may choose the smallest (most infeasible)
-
-To fix infeasibility we want to make the negative RHS positive, so we pivot on a negative coefficented variable in the primal tableau. So in this case $s_1$ / $x_3$ is the **entering variable**. What if we have multiple negative coefficients? To choose which, remember we also need to maintain dual feasibility, this means reduced costs need to remain non-negative otherwise we may end up in a situation where we are primal infeasible and dual infeasible. Simplex cannot help in this situation. 
-
-So we choose the non basic variable with the smallest
-reduced costs / - coefficient -->
